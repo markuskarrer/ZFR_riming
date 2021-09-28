@@ -153,9 +153,9 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
             ax.plot([var.time.values[i],var.time.values[i+1]],[ax.get_ylim()[0],ax.get_ylim()[0]],c=["blue","green","red"][int(ptype_flag.values[i])],lw=15)
 
 
-    ax.legend(loc="upper left",ncol=2,bbox_to_anchor=(0.00, 1.15),fontsize=15)
+    ax.legend(loc="upper left",ncol=2,bbox_to_anchor=(0.00, 1.15),fontsize=20)
     ax.set_ylabel("MDV [m/s]",fontsize=20)
-    ax2.legend(loc="upper right",ncol=2,bbox_to_anchor=(1.00, 1.15),fontsize=15)
+    ax2.legend(loc="upper right",ncol=1,bbox_to_anchor=(1.05, 1.15),fontsize=20)
     ax2.set_ylabel("DWR [dB]",fontsize=20)
     ax2.tick_params(axis='y',labelsize=20)
     #plot and remove colorbar to have aligned time with plots above
@@ -191,13 +191,13 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
         if ZFtop.values[i]<20 or ZFbottom.values[i]<(20/0.23):
             ax.plot([var.time.values[i],var.time.values[i+1]],[ax.get_ylim()[0],ax.get_ylim()[0]],c="k",lw=15)
     ax.axhline(1.0,c="magenta")
-    ax.legend(loc="upper left",ncol=3,bbox_to_anchor=(0.00, 1.15),fontsize=15)
+    ax.legend(loc="upper left",ncol=1,bbox_to_anchor=(0.00, 1.27),fontsize=20)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax.set_xlabel("time",fontsize=20)
     ax.set_ylabel("ZFR",fontsize=20)
     ax.tick_params(axis='x',labelsize=20)
     ax.tick_params(axis='y',labelsize=20)
-    ax2.legend(loc="upper right",ncol=2,bbox_to_anchor=(1.0, 1.15),fontsize=15)
+    ax2.legend(loc="upper right",ncol=2,bbox_to_anchor=(1.05, 1.27),fontsize=20)
     ax2.set_ylabel("ZF [dBz m/s]",fontsize=20)
     ax2.tick_params(axis='y',labelsize=20)
     ax2.yaxis.grid(b=True,which="major",linestyle="--",c="k")
@@ -394,7 +394,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
             mie_notch_DV = []
             specW_now = specW.copy() #need to change conventions here back again
             specW_now["dopplerW"] = -specW_now["dopplerW"] #change conventions
-            if True: #deactivat mie-notch plotting (takes a lot of time)
+            if True: #True: #deactivat mie-notch plotting (takes a lot of time)
                 for height in specW.range:
                     if height>(MLbottom_t+10):
                         continue
@@ -449,29 +449,29 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
         import matplotlib as mpl
         mpl.style.use('seaborn')
         mpl.rcParams['font.size'] = 35
-        mpl.rcParams['legend.fontsize'] = 20
-        mpl.rcParams['figure.titlesize'] = 20
+        mpl.rcParams['legend.fontsize'] = 25
+        mpl.rcParams['figure.titlesize'] = 25
 
         mpl.rcParams['legend.fancybox'] = True
         mpl.rcParams['legend.framealpha'] = 0.7
         mpl.rcParams['legend.facecolor']='silver'
         mpl.rcParams['legend.frameon']=True
 
-        mpl.rcParams['ytick.labelsize']= 20
-        mpl.rcParams['xtick.labelsize']= 20
-        mpl.rcParams['axes.titlesize']=20
-        mpl.rcParams['axes.labelsize']=20
+        mpl.rcParams['ytick.labelsize']= 25
+        mpl.rcParams['xtick.labelsize']= 25
+        mpl.rcParams['axes.titlesize']=25
+        mpl.rcParams['axes.labelsize']=25
 
         mpl.rcParams['lines.linewidth']=5
 
-        fig,axes = plt.subplots(ncols=3,nrows=2,figsize=(20,12),sharey=True) 
+        fig,axes = plt.subplots(ncols=2,nrows=3,figsize=(20,25),sharey=True) 
         #integral moments
         for i_var,(height,xvar,label,xlims,ax) in enumerate(zip(
                                                               [ZeX.range,ZfluxX.range], #yvar
                                                               [ZeX,ZfluxX], 
                                                               ['Ze$_{X}$ [dB]','F$_{Z,X}$ [dB m/s]'], #label
                                                               [[15,35],[0,300]], #xlims
-                                                              axes[:,2:3].flatten())):
+                                                              axes[2:3,:].flatten())):
             #plot
             ax.plot(xvar,height,color="k")
                 
@@ -491,11 +491,11 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                         colorZFR[i_col]="blue"
                     elif ~np.isnan(ZFR):
                         colorZFR[i_col]="red"
-                plt.text(0.99, 0.90,w_str,horizontalalignment='right',verticalalignment='top',transform = ax.transAxes,fontsize=15,color="k")
-                plt.text(0.99, 0.99,ZFR_str,horizontalalignment='right',verticalalignment='top',transform = ax.transAxes,fontsize=25,color=colorZFR[0])
-                plt.text(0.99, 0.1,ZFRcorrTop_str + "\n",horizontalalignment='right',verticalalignment='bottom',transform = ax.transAxes,fontsize=15,color=colorZFR[1])
-                plt.text(0.99, 0.05,ZFRcorrBot_str + "\n",horizontalalignment='right',verticalalignment='bottom',transform = ax.transAxes,fontsize=15,color=colorZFR[2])
-                plt.text(0.99, -0.07,ZFRcorr_str + "\n",horizontalalignment='right',verticalalignment='bottom',transform = ax.transAxes,fontsize=25,color=colorZFR[3])
+                plt.text(0.99, 0.90,w_str,horizontalalignment='right',verticalalignment='top',transform = ax.transAxes,fontsize=25,color="k")
+                plt.text(0.99, 0.99,ZFR_str,horizontalalignment='right',verticalalignment='top',transform = ax.transAxes,fontsize=35,color=colorZFR[0])
+                plt.text(0.99, 0.1,ZFRcorrTop_str + "\n",horizontalalignment='right',verticalalignment='bottom',transform = ax.transAxes,fontsize=25,color=colorZFR[1])
+                plt.text(0.99, 0.05,ZFRcorrBot_str + "\n",horizontalalignment='right',verticalalignment='bottom',transform = ax.transAxes,fontsize=25,color=colorZFR[2])
+                plt.text(0.99, -0.07,ZFRcorr_str + "\n",horizontalalignment='right',verticalalignment='bottom',transform = ax.transAxes,fontsize=35,color=colorZFR[3])
 
         #plot spectra
         for i_var,(xvar,yvar,var,clabel,xlims,lims,ax) in enumerate(zip(
@@ -506,6 +506,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                                                               ['z$_{W}$ [dB]','z$_{Ka}$ [dB]','z$_{X}$ [dB]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
                                                               [[-1,11],[-1,11],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
                                                               [[-45,10],[-45,10],[-45,10],[-30,-5],[-5,20],[-5,20]], #,[-5,20]],# ,[-0.5,3]], #lims (colorbar)
+                                                              #[axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
                                                               [axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
             if len(var.shape)>2:
                 print("wrong shape of spectrum:", label)
@@ -578,6 +579,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
 
         axes[0][0].set_ylabel('height [m]')
         axes[1][0].set_ylabel('height [m]')
+        axes[2][0].set_ylabel('height [m]')
 
         for ax,letter in zip(axes.flatten(),["a)","b)","c)","d)","e)","f)"]):
             plt.text
