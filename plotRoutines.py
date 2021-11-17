@@ -14,6 +14,10 @@ from IPython.core.debugger import set_trace
 import sys
 import turbo_colormap_mpl
 turbo_colormap_mpl.register_turbo()
+
+def Bd(x): #conversion: logarithmic [dB] to linear [mm*6/m**3]
+    return 10.0**(0.1*x)
+
     
 def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str=""):
 
@@ -60,7 +64,7 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     MDVx = -dataLV2.X_VEL_H
     #MDVk = -dataLV2.Ka_VEL_H
     #MDVw = -dataLV2.W_VEL_H
-    ZfluxX = ZeX*MDVx #derive reflectivity flux
+    ZfluxX = Bd(ZeX)*MDVx #derive reflectivity flux
     ZfluxX_dh = ZfluxX.differentiate("range").copy() #built vertical gradient
     ZfluxX_dh = ZfluxX_dh.rolling(time=15*int(average_min)).mean().copy() #built vertical gradient
 
@@ -73,7 +77,8 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     #get properties at ML top and bottom
     ZFtop = ZfluxX.sel(range=MLtop,method="nearest").copy()
     ZFbottom = ZfluxX.sel(range=MLbottom,method="nearest").copy()
-    ZFR = (ZFbottom/ZFtop).values*0.23
+    ZFR = ((ZFbottom)/(ZFtop)).values*0.23
+
     MDVxTop     = MDVx.sel(range=MLtop,method="nearest")
     MDVxBot     = MDVx.sel(range=MLbottom,method="nearest")
     DWRxkTop    = DWRxk.sel(range=MLtop,method="nearest")
@@ -180,25 +185,25 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
             ZFtop = ZFtop.rolling(min_periods=int(int(av_min)*15/2),center=True,time=int(int(av_min)*15)).mean().copy()
             ZFbottom = ZFbottom.rolling(min_periods=int(int(av_min)*15/2),center=True,time=int(int(av_min)*15)).mean().copy()
             ZFR = ZFbottom/ZFtop*0.23
-            ax.plot(ZeX.time,ZFR,c="k",label="ZFR$_{" + label_av,ls=ls,lw=lw)
+            ax.plot(ZeX.time,np.log10(ZFR),c="k",label="ZFR$_{" + label_av,ls=ls,lw=lw)
         else:
-            ax.plot(ZeX.time,ZFR,c="k",label="ZFR$_{" + label_av,ls=ls,lw=lw)
-        ax2.plot(ZeX.time,ZFtop,c="orange",label="ZF$_{top," + label_av,ls=ls,lw=lw)
-        ax2.plot(ZeX.time,ZFbottom*0.23,c="g",label="ZF$_{bottom," + label_av +  "/0.23",ls=ls,lw=lw)
-    ax.set_ylim([0.0,2.0]) #[0.23-0.23,0.23+0.23])
+            ax.plot(ZeX.time,np.log10(ZFR),c="k",label="ZFR$_{" + label_av,ls=ls,lw=lw)
+        ax2.semilogy(ZeX.time,ZFtop,c="orange",label="ZF$_{top," + label_av,ls=ls,lw=lw)
+        ax2.semilogy(ZeX.time,ZFbottom*0.23,c="g",label="ZF$_{bottom," + label_av +  "/0.23",ls=ls,lw=lw)
+    ax.set_ylim([-1.0,1.0]) #[0.23-0.23,0.23+0.23])
     #mark regions with too low fluxes
     for i in np.arange(len(ptype_flag.values)-1):
-        if ZFtop.values[i]<20 or ZFbottom.values[i]<(20/0.23):
+        if ZFtop.values[i]<1e2 or ZFbottom.values[i]<(1e2/0.23):
             ax.plot([var.time.values[i],var.time.values[i+1]],[ax.get_ylim()[0],ax.get_ylim()[0]],c="k",lw=15)
-    ax.axhline(1.0,c="magenta")
+    ax.axhline(0.0,c="magenta")
     ax.legend(loc="upper left",ncol=1,bbox_to_anchor=(0.00, 1.27),fontsize=20)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax.set_xlabel("time",fontsize=20)
-    ax.set_ylabel("ZFR",fontsize=20)
+    ax.set_ylabel("log(ZFR)",fontsize=20)
     ax.tick_params(axis='x',labelsize=20)
     ax.tick_params(axis='y',labelsize=20)
     ax2.legend(loc="upper right",ncol=2,bbox_to_anchor=(1.05, 1.27),fontsize=20)
-    ax2.set_ylabel("ZF [dBz m/s]",fontsize=20)
+    ax2.set_ylabel("ZF [mm$^6$ m/s]",fontsize=20)
     ax2.tick_params(axis='y',labelsize=20)
     ax2.yaxis.grid(b=True,which="major",linestyle="--",c="k")
     #ax2.yaxis.grid(b=True,which="minor",linestyle="",c="k")
@@ -306,7 +311,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
         MDVx = -dataLV2selt.X_VEL_H
         MDVk = -dataLV2selt.Ka_VEL_H
         MDVw = -dataLV2selt.W_VEL_H
-        ZfluxX = ZeX*MDVx #derive reflectivity flux
+        ZfluxX = Bd(ZeX)*MDVx #derive reflectivity flux
         RH = dataLV2selt.hur
         pres = dataLV2selt.pa
         presMLbot = pres.sel(range=MLbottom_t).values
@@ -394,7 +399,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
             mie_notch_DV = []
             specW_now = specW.copy() #need to change conventions here back again
             specW_now["dopplerW"] = -specW_now["dopplerW"] #change conventions
-            if True: #True: #deactivat mie-notch plotting (takes a lot of time)
+            if False: #True: #True: #deactivat mie-notch plotting (takes a lot of time)
                 for height in specW.range:
                     if height>(MLbottom_t+10):
                         continue
@@ -421,9 +426,9 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                 w_detected_str = ""
 
             
-            ZfluxXcorrTop = (ZeX.sel(range=MLbottom_t)*(MDVx.sel(range=MLbottom_t)-wbot_est)/(ZeX.sel(range=MLtop_t)* MDVx.sel(range=MLtop_t))).values*0.23 #derive reflectivity flux
-            ZfluxXcorrBot = (ZeX.sel(range=MLbottom_t)*(MDVx.sel(range=MLbottom_t))         /(ZeX.sel(range=MLtop_t)*(MDVx.sel(range=MLtop_t)-wtop_est))).values*0.23 #derive reflectivity flux
-            ZfluxXcorr    = (ZeX.sel(range=MLbottom_t)*(MDVx.sel(range=MLbottom_t)-wbot_est)/(ZeX.sel(range=MLtop_t)*(MDVx.sel(range=MLtop_t)-wtop_est))).values*0.23 #derive reflectivity flux
+            ZfluxXcorrTop = (Bd(ZeX.sel(range=MLbottom_t))*(MDVx.sel(range=MLbottom_t)-wbot_est)/(Bd(ZeX.sel(range=MLtop_t))* MDVx.sel(range=MLtop_t))).values*0.23 #derive reflectivity flux
+            ZfluxXcorrBot = (Bd(ZeX.sel(range=MLbottom_t))*(MDVx.sel(range=MLbottom_t))         /(Bd(ZeX.sel(range=MLtop_t))*(MDVx.sel(range=MLtop_t)-wtop_est))).values*0.23 #derive reflectivity flux
+            ZfluxXcorr    = (Bd(ZeX.sel(range=MLbottom_t))*(MDVx.sel(range=MLbottom_t)-wbot_est)/(Bd(ZeX.sel(range=MLtop_t))*(MDVx.sel(range=MLtop_t)-wtop_est))).values*0.23 #derive reflectivity flux
             ZFRcorrTop_str = "ZFR$_{corrTop}$=" + " {0:.2f}".format(ZfluxXcorrTop) 
             ZFRcorrBot_str = "ZFR$_{corrBot}$=" + " {0:.2f}".format(ZfluxXcorrBot) 
             ZFRcorr_str    = "ZFR$_{corr}$=" + " {0:.2f}".format(ZfluxXcorr)
@@ -469,11 +474,14 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
         for i_var,(height,xvar,label,xlims,ax) in enumerate(zip(
                                                               [ZeX.range,ZfluxX.range], #yvar
                                                               [ZeX,ZfluxX], 
-                                                              ['Ze$_{X}$ [dB]','F$_{Z,X}$ [dB m/s]'], #label
-                                                              [[15,35],[0,300]], #xlims
+                                                              ['Ze$_{X}$ [dBz]','F$_{Z,X}$ [mm$^6$/ (m/s)]'], #label
+                                                              [[15,35],[1e2,1e4]], #xlims
                                                               axes[2:3,:].flatten())):
             #plot
-            ax.plot(xvar,height,color="k")
+            if i_var==0:
+                ax.plot(xvar,height,color="k")
+            elif i_var==1:
+                ax.semilogx(xvar,height,color="k")
                 
             ax.set_xlabel(label)
             ax.set_xlim(xlims)
@@ -592,5 +600,6 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
         else:
             plt.savefig(outPath+ ti +'_spectra' + w_detected_str + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
             plt.savefig(outPath+ ti +'_spectra' + w_detected_str + '.pdf', facecolor=fig.get_facecolor(), edgecolor='none')
+            print('saved to: ' + outPath+ ti +'_spectra' + w_detected_str + '.png')
         plt.close()
         print(ti,' finished')     
