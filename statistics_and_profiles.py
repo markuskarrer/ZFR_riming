@@ -81,6 +81,12 @@ def categorize_part_type(var,MDVxT,DWRxkT,var_coll,varKey,i,clustering_char):
 
     return var_coll
 
+def dB(x): #conversion: linear [mm**6/m**3] to logarithmic [dB]
+    return 10.0*np.log10(x)
+
+def Bd(x): #conversion: logarithmic [dB] to linear [mm*6/m**3]
+    return 10.0**(0.1*x)
+
 def get_observed_melting_properties(onlydate="",av_min=0,calc_or_load=1,no_mie_notch=False,profiles=False):
 
     dataPath = '/data/obs/campaigns/tripex-pol/processed/tripex_pol_level_2/'
@@ -133,6 +139,8 @@ def get_observed_melting_properties(onlydate="",av_min=0,calc_or_load=1,no_mie_n
 
         if date_now=="20190220":
             continue
+        #if int(date_now)>20190125: #TMP!
+        #    continue
         #if date_now.startswith("2019") or date_now.startswith("201811"):
         #    continue
         #if date_now.startswith("2018112"):
@@ -175,16 +183,16 @@ def get_observed_melting_properties(onlydate="",av_min=0,calc_or_load=1,no_mie_n
     #results["ZFRvCorr"]  = ((results["MDVxT"] - results["w_estT"]) * results["ZeXt"] /((results["MDVxB"]-results["w_estB"]) * results["ZeXb"])        ).copy()
  
     ###NEW ZFR definition: 1 for 1to1 melting; higher for collision, lower for break-up
-    #results["ZFR"]       = results["MDVxB"].copy()                       * results["ZeXb"].copy() / (results["MDVxT"].copy()                     * results["ZeXt"].copy()) * 0.23        
 
-    results["ZFR"] = (results["MDVxB"] - 0.0) * results["ZeXb"] / (results["MDVxT"]                     * results["ZeXt"])  * 0.23
-    results["ZFRvCorrB"] = (results["MDVxB"] - results["w_estB"]) * results["ZeXb"] / (results["MDVxT"]                     * results["ZeXt"])  * 0.23
-    results["ZFRvCorrT"] =  results["MDVxB"]                     * results["ZeXb"] / ((results["MDVxT"]-results["w_estT"])  * results["ZeXt"])  * 0.23
+    results["ZFR"] = (results["MDVxB"] - 0.0) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * Bd(results["ZeXt"]))  * 0.23
+    results["ZFRattCorr"] = (results["MDVxB"] - 0.0) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * (Bd(results["ZeXt"]+attMelt)))  * 0.23 #attMelt is the attenuation in dB
+    results["ZFRvCorrB"] = (results["MDVxB"] - results["w_estB"]) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * Bd(results["ZeXt"]))  * 0.23
+    results["ZFRvCorrT"] =  results["MDVxB"]                     * Bd(results["ZeXb"]) / ((results["MDVxT"]-results["w_estT"])  * Bd(results["ZeXt"]))  * 0.23
 
-    results["ZFRvCorr"]  = (results["MDVxB"] - results["w_estB"]) * results["ZeXb"] /((results["MDVxT"]-results["w_estT"]) * results["ZeXt"])  * 0.23
+    results["ZFRvCorr"]  = (results["MDVxB"] - results["w_estB"]) * Bd(results["ZeXb"]) /((results["MDVxT"]-results["w_estT"]) * Bd(results["ZeXt"]))  * 0.23
 
     results["Delta_ZF_upper"]           =  (results["ZfluxX_thirdML"]) / (-results["MDVxT"] * results["ZeXt"]) #increase of reflectivity flux in upper (half/two thirds/...)
-    results["Delta_ZF_lower"]           =  ((-results["MDVxB"]*results["ZeXb"])- results["ZfluxX_thirdML"]) / (-results["MDVxT"] * results["ZeXt"]) #increase of reflectivity flux in upper (half/third/...)
+    results["Delta_ZF_lower"]           =  ((-results["MDVxB"]*Bd(results["ZeXb"]))- results["ZfluxX_thirdML"]) / (-results["MDVxT"] * Bd(results["ZeXt"])) #increase of reflectivity flux in upper (half/third/...)
 
     if av_min=="0":
         pass
@@ -198,6 +206,7 @@ def get_observed_melting_properties(onlydate="",av_min=0,calc_or_load=1,no_mie_n
             results = results.rolling(min_periods=int(int(av_min)*15/2),center=True,time=int(int(av_min)*15)).mean().copy() #min_periods=int(av_min*15/2)-> more than 50% in the averaging box must be non-nan
 
     return results
+
 
 #def getParsivelRainRate(date):
 #
@@ -331,22 +340,22 @@ def processOneDay(fileName,fileNameEdge,fileNamePeaks,fileNameLV0, maskR, maskL,
         MLhalf = (heightBottonMaxLDR + offset_MLbot + (heightTopMaxLDR + offset_MLtop-heightBottonMaxLDR + offset_MLbot)/2)
         _, _, _, MDV_half, _ =         fc.getProp(rv_x, MLhalf, 0)
         _, _, _, Ze_half, _ =         fc.getProp(dbz_x, MLhalf, 0)
-        ZfluxX_halfML = MDV_half * Ze_half 
+        ZfluxX_halfML = MDV_half * Bd(Ze_half)
         #third
         MLthird = (heightBottonMaxLDR + offset_MLbot + (heightTopMaxLDR + offset_MLtop-heightBottonMaxLDR + offset_MLbot)/3)
         _, _, _, MDV_third, _ =         fc.getProp(rv_x, MLthird, 0)
         _, _, _, Ze_third, _ =         fc.getProp(dbz_x, MLthird, 0)
-        ZfluxX_thirdML = MDV_third * Ze_third 
+        ZfluxX_thirdML = MDV_third * Bd(Ze_third) 
         #fourth
         MLfourth = (heightBottonMaxLDR + offset_MLbot + (heightTopMaxLDR + offset_MLtop-heightBottonMaxLDR + offset_MLbot)/4)
         _, _, _, MDV_fourth, _ =         fc.getProp(rv_x, MLfourth, 0)
         _, _, _, Ze_fourth, _ =         fc.getProp(dbz_x, MLfourth, 0)
-        ZfluxX_fourthML = MDV_fourth * Ze_fourth 
+        ZfluxX_fourthML = MDV_fourth * Bd(Ze_fourth)
         #fifth
         MLfifth = (heightBottonMaxLDR + offset_MLbot + (heightTopMaxLDR + offset_MLtop-heightBottonMaxLDR + offset_MLbot)/5)
         _, _, _, MDV_fifth, _ =         fc.getProp(rv_x, MLfifth, 0)
         _, _, _, Ze_fifth, _ =         fc.getProp(dbz_x, MLfifth, 0)
-        ZfluxX_fifthML = MDV_fifth * Ze_fifth 
+        ZfluxX_fifthML = MDV_fifth * Bd(Ze_fifth) 
 
         _, _, _, rvXBottomLDR, rvXTopLDR =         fc.getProp(rv_x, heightBottonMaxLDR + offset_MLbot, heightTopMaxLDR + offset_MLtop)
         _, _, _, rvXBottomLDR, rvXTopLDR =         fc.getProp(rv_x, heightBottonMaxLDR + offset_MLbot, heightTopMaxLDR + offset_MLtop)
@@ -565,7 +574,7 @@ def processOneDayProfiles(fileName,fileNameEdge,fileNamePeaks,fileNameLV0, maskR
         ddv_xk= (rv_x - rv_ka) * -1
         dwr_xka = (dbz_x - dbz_ka)
         dwr_kaw = (dbz_ka - dbz_w)
-        fz_X = dbz_x * (-rv_x)
+        fz_X = Bd(dbz_x) * (-rv_x)
 
 
         print("start getting ML profiles")
@@ -593,7 +602,7 @@ def processOneDayProfiles(fileName,fileNameEdge,fileNamePeaks,fileNameLV0, maskR
             print("get: ",key)
             tmpData[key] = fc.getProfile(var, (heightBottonMaxLDR+ offset_MLbot) + h_rel_grid * Delta_ML)
 
-        if True:
+        if True: 
             ##w-estimate (MLtop from cloud droplet peak)
             peak1_cleanedIce        = np.where(tmpData["peak1pow"].values<-30,tmpData["peak1"].values,tmpData["peak2"].values) #remove second ice mode (should have more than 30dBz power)
             peak1_cleanedIceNoise   = np.where(tmpData["peak1pow"].values>-50,peak1_cleanedIce,np.nan) #remove Peaks with very low power (probably noise)
@@ -601,6 +610,7 @@ def processOneDayProfiles(fileName,fileNameEdge,fileNamePeaks,fileNameLV0, maskR
             tmpData["w_estT"] = tmpData["peak1"].copy(data=np.ones_like(tmpData["peak1"])*np.nan) #initialize empty dataframe
             tmpData["w_estT"].values = np.nanmin([[-peak1_cleanedIceNoise,-peak2_cleanedNoise]],axis=1)[0]
             tmpData["w_estT"].loc[dict(range=slice(h_rel_lims[0],0.9))] = np.nan*np.ones_like(tmpData["w_estT"].loc[dict(range=slice(h_rel_lims[0],0.9))]) #remove data within ML
+            
 
         #if True: #you might want to deactivate this slow calculation of the mie-notch
         if not no_mie_notch:
@@ -658,9 +668,15 @@ def processOneDayProfiles(fileName,fileNameEdge,fileNamePeaks,fileNameLV0, maskR
             with open('/net/morget/melting_data/MLprofiles' + date_str  + '.pkl', 'rb') as f:
                 tmpData = pickle.load(f)
             print("load MLprofiles file")
-            tmpData = tmpData.dropna(dim="time", #to save memory remove timesteps where all relevant data is missing
-                subset=["FzNorm","LDR","ZeX","MDVx","DWRxk","DWRkw","DVedgeL","DVedgeH","w_estT","w_estB","FzNorm","FzGrad"],
-                how="all")
+            try: #sometimes w_estT and w_estB might be deactivated because this needs a lot of time
+                tmpData = tmpData.dropna(dim="time", #to save memory remove timesteps where all relevant data is missing
+                    subset=["FzNorm","LDR","ZeX","MDVx","DWRxk","DWRkw","DVedgeL","DVedgeH","w_estT","w_estB","FzNorm","FzGrad"],
+                    how="all")
+            except:
+                tmpData = tmpData.dropna(dim="time", #to save memory remove timesteps where all relevant data is missing
+                    subset=["FzNorm","LDR","ZeX","MDVx","DWRxk","DWRkw","DVedgeL","DVedgeH","FzNorm","FzGrad"],
+                    how="all")
+
         except:
             print(date,"not there yet")
             tmpData = {}
@@ -768,7 +784,7 @@ def get_vars_profiles(vars_out,res):
     all_dic["LDR"]                 = vars( "LDR"            ,'LDR$_{Ka}$ [dB]'                  ,[-35,-5])
     all_dic["ZeX"]                 = vars( "ZeX"            ,"Ze$_{X}$ [dB]"                ,[10,35]               )
     all_dic["MDVx"]                = vars( "MDVx"           ,"MDV$_{X}$ [m/s]"              ,[1.0,7]            )
-    all_dic["Fz"]                  = vars( "Fz"             ,"F$_{Z,X}$ [dB m/s]"              ,[20,150]            )
+    all_dic["Fz"]                  = vars( "Fz"             ,"F$_{Z,X}$ [mm$^6$/m$^3$ m/s]"              ,[0,1e15]            )
     all_dic["DWRxk"]               = vars( "DWRxk"          ,"DWR$_{X,Ka}$ [dB]"             ,[-1.5,15]            )
     all_dic["DWRkw"]               = vars( "DWRkw"          ,"DWR$_{Ka,W}$ [dB]"             ,[-1.5,15]            )
     all_dic["FzNorm"]              = vars( "FzNorm"         ,"F$_{Z,X}$/F$_{Z,X,top}$"              ,[0.5,6]            )
@@ -818,6 +834,7 @@ def profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
     results = get_observed_melting_properties(onlydate=onlydate,calc_or_load=col,profiles=True,no_mie_notch=no_mie_notch) #calc_or_load: 1: calculate each day 0: load each day
     #keys = ["LDR","ZeX","MDVx","DWRxk","Fz","FzNorm","FzGrad","DWRkw"]
     keys = ["LDR","ZeX","MDVx","DV_edge_high","DV_edge_low","Fz","FzNorm","FzGrad","w_estT","w_estB"]
+    #keys = ["DWRxk","DWRkw","MDVx","DV_edge_high","DV_edge_low","Fz","FzNorm","FzGrad","w_estT","w_estB"]
     #keys = ["Fz","w_estB"]
     #keys = ["w_estT"]
     axflat = axes.flatten()
@@ -839,7 +856,6 @@ def profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
 
         z_dic = dict() #save "histogram" in dictionary
         for i_ptype,ptype in enumerate(["unrimed","transitional","rimed"]):
-
             ax.axhline(1.0,c="k",ls="--",lw=5)
             ax.axhline(0.0,c="k",ls="--",lw=5)
             if key=="FzNorm":
@@ -848,7 +864,7 @@ def profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
                 varColl["F0"+ ptype + key] = varColl["F0"+ ptype + key].where(varColl["F0"+ ptype + key].range<0.0).copy() #crop mie-notch within ML
             low_quant = varColl["F0"+ ptype + key].quantile(0.25,dim="time")
             upp_quant = varColl["F0"+ ptype + key].quantile(0.75,dim="time")
-            med_quant = varColl["F0"+ ptype + key].mean(dim="time")
+            med_quant = varColl["F0"+ ptype + key].median(dim="time")
             if key=="FzGrad":
                 low_quant = low_quant.rolling(min_periods=1,range=3).mean()
                 upp_quant = upp_quant.rolling(min_periods=1,range=3).mean()
@@ -865,7 +881,7 @@ def profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
         if i_var in [0,2,5,7]:
             ax.set_ylim([varColl["F0" + ptype +key].range[0],varColl["F0" + ptype +key].range[-1]])
             ax.set_ylabel("h$_{rel}$")
-        ax.set_xlim(var.lims)
+        #ax.set_xlim(var.lims)
         ax.set_xlabel(var.plot_label)
 
         #add letters
@@ -914,19 +930,27 @@ def profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
                     wspace=0.1, 
                     hspace=0.3)
     #save figure
-    savestr = 'plots/profiles_ptype' + save_spec 
+    if "20" in onlydate:
+        savestr = 'plots/days/profiles_ptype' + save_spec 
+    else:
+        savestr = 'plots/profiles_ptype' + save_spec 
+
+    plt.savefig(savestr + '.pdf')
+    plt.savefig(savestr + '.png')
     if correct_w_before_categorization:
         savestr += "_correct_w_before_categorization"
     plt.savefig(savestr + '.pdf')
     print("pdf is at: ",savestr + '.pdf')
     plt.clf()
 
-def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
+def boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None):
     '''
     plot boxplots after different filtering (Zeflux,RH) and corrections (vertical wind estimate)
     showfliers: show outliers of boxplot
     ONLYbci: show only panels b) c) and i) (for presentation)
+    day: None: all days; otherways date in YYYYMMDD
     '''
+    set_trace()
     import seaborn as sns
     from matplotlib.ticker import MultipleLocator
     mpl.style.use('seaborn')
@@ -966,19 +990,19 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
         fig,axes = plt.subplots(ncols=1,nrows=1,figsize=(12,7))
         ZFR_coll   = dict() #collection of all ZFRs
         filterNumbers = [0,1,2]
-        filterDescr   = ["F1: F$_{Z,X}$>20dBz m/s","F2: F1 & RH>95%","F1 + w-corr"]
+        filterDescr   = ["F1: F$_{Z,X}$>100mm$^6$ m$^{-3}$ m s$^{-1}$","F2: F1 & RH>95%","F1 + w-corr"]
         for i_filter in filterNumbers:
             if i_filter in [0,2]:
-                filterZeflux  = 20
+                filterZeflux  = 100
                 #filter small fluxes
-                results_now = results.where((results["MDVxT"] * results["ZeXt"])  >filterZeflux)
-                results_now = results_now.where((results_now["MDVxB"] * results_now["ZeXb"]/0.23)  >filterZeflux)
+                results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
+                results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])/0.23)  >filterZeflux)
                 #results_now = results_now.where((results_now["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
             elif i_filter==1:
-                filterZeflux  = 20
+                filterZeflux  = 100
                 #filter small fluxes
-                results_now = results.where((results["MDVxT"] * results["ZeXt"])  >filterZeflux)
-                results_now = results_now.where((results_now["MDVxB"] * results_now["ZeXb"]/0.23)  >filterZeflux)
+                results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
+                results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])/0.23)  >filterZeflux)
                 #results_now = results_now.where((results_now["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
                 results_now = results_now.where((results_now["RHb"]>95.)) #filter also cases with low RH
 
@@ -1025,6 +1049,7 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
             ax=axes) 
         ax.axhline(1.0,c="magenta",lw=2)
         ax.set_ylim([0.0,2.1])
+
         plt.tight_layout() #rect=(0,0.00,1,1))
         #save figure
         savestr = 'plots/Boxplot4pres'
@@ -1037,21 +1062,21 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
 
     ZFR_coll   = dict() #collection of all ZFRs
     filterNumbers = [0,1,2]
-    filterDescr   = ["none","F1: F$_{Z,X}$>20dBz m/s","F2: F1 & RH>95%"]
+    filterDescr   = ["none","F1: F$_{Z,X}$>100$mm^6 m^{-3} m s^{-1}$","F2: F1 & RH>95%"]
     for i_filter in filterNumbers:
         if i_filter==0:
             results_now = results #no filter
         elif i_filter==1:
-            filterZeflux  = 20
+            filterZeflux  = 100
             #filter small fluxes
-            results_now = results.where((results["MDVxT"] * results["ZeXt"])  >filterZeflux)
-            results_now = results_now.where((results_now["MDVxB"] * results_now["ZeXb"]/0.23)  >filterZeflux)
+            results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
+            results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])/0.23)  >filterZeflux)
             #results_now = results_now.where((results_now["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
         elif i_filter==2:
-            filterZeflux  = 20
+            filterZeflux  = 100
             #filter small fluxes
-            results_now = results.where((results["MDVxT"] * results["ZeXt"])  >filterZeflux)
-            results_now = results_now.where((results_now["MDVxB"] * results_now["ZeXb"]/0.23)  >filterZeflux)
+            results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
+            results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])/0.23)  >filterZeflux)
             #results_now = results_now.where((results_now["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
             results_now = results_now.where((results_now["RHb"]>95.)) #filter also cases with low RH
 
@@ -1093,7 +1118,8 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
     ax.axhline(1.0,c="magenta",lw=2)
     #limits and labels
     #ax.set_ylim([-0.5,1.25])
-    ax.set_ylim([-1.0,3.0])
+    #ax.set_ylim([-1.0,3.0])
+    #ax.set_ylim([0.0,7.0]) #!TMP
 
 
     ####################################
@@ -1118,8 +1144,8 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
         ZFRkey = "ZFR"
         #load variables
         #filter small fluxes
-        filterZeflux  = 20
-        results_now = results_av.where((results_av["MDVxT"] * results_av["ZeXt"])  >filterZeflux).copy()
+        filterZeflux  = 100
+        results_now = results_av.where((results_av["MDVxT"] * Bd(results_av["ZeXt"]))  >filterZeflux).copy()
         #results_now = results_now.where((results_now["MDVxB"] * results_now["ZeXb"]/0.23)  >filterZeflux).copy()
         #results_now = results_now.where((results_now["ZeXt"]>0)).copy() #correction also cases where Ze<0 and MDV<0
         #filter low RH
@@ -1133,6 +1159,11 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
         ZFR = vars_dict[ZFRkey]
 
         ZFR_coll = categorize_part_type(ZFR.data,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_average,"A")
+
+        if False: #TMP! debug ZFR values
+            ax.text(0.5,1.5,"rim low {:.2f} ".format(np.nanpercentile(ZFR_coll["F1rimedZFR"],25))+"med{:.2f} ".format(np.nanmedian(ZFR_coll["F1rimedZFR"]))+"hig{:.2f}".format(np.nanpercentile(ZFR_coll["F1rimedZFR"],75)))
+            ax.text(0.5,1.0,"trans low {:.2f} ".format(np.nanpercentile(ZFR_coll["F1transitionalZFR"],25))+"med{:.2f} ".format(np.nanmedian(ZFR_coll["F1transitionalZFR"]))+"hig{:.2f}".format(np.nanpercentile(ZFR_coll["F1transitionalZFR"],75)))
+            ax.text(0.5,0.5,"unr low {:.2f} ".format(np.nanpercentile(ZFR_coll["F1unrimedZFR"],25))+"med{:.2f} ".format(np.nanmedian(ZFR_coll["F1unrimedZFR"]))+"hig{:.2f}".format(np.nanpercentile(ZFR_coll["F1unrimedZFR"],75)))
 
     # DATAFRAMES WITH TRIAL COLUMN ASSIGNED
     for i_average in averageNumbers:
@@ -1154,7 +1185,8 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
     ax.axhline(1.0,c="magenta",lw=2)
     #limits and labels
     #ax.set_ylim([0.0,0.6])
-    ax.set_ylim([0.0,2.1])
+    #ax.set_ylim([0.0,2.1])
+    #ax.set_ylim([2.0,5.0]) #!TMP
     if not ONLYbci:
         add_letters(ax,row=1)
 
@@ -1162,9 +1194,9 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
     #third plot: different corrections#
     ####################################
     #filter small fluxes
-    filterZeflux  = 20
-    results_now = results.where((results["MDVxT"] * results["ZeXt"])  >filterZeflux)
-    results_now = results_now.where((results["MDVxB"] * results["ZeXt"]/0.23)  >filterZeflux)
+    filterZeflux  = 100
+    results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
+    results_now = results_now.where((results["MDVxB"] * Bd(results["ZeXt"])/0.23)  >filterZeflux)
     results_now = results_now.where((results["ZeXt"]>0)) #correction also cases where Ze<0 and MDV<0
     #filter low RH
     #results_now = results_now.where((results["RHb"]>95.)) #filter also cases with low RH
@@ -1232,10 +1264,15 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False):
         ax.grid(b=True,which="minor")
     plt.tight_layout() #rect=(0,0.00,1,1))
     #save figure
-    savestr = 'plots/Boxplot'
     #if av_min!="0":
     #    savestr+= "_av" + str(av_min) + "min"
+    if "20" in day:
+        savestr = 'plots/days/Boxplot' + day
+    else:
+        savestr = 'plots/Boxplot'
+
     plt.savefig(savestr + '.pdf')
+    plt.savefig(savestr + '.png')
     print("pdf is at: ",savestr + '.pdf')
     plt.clf()
 
@@ -1264,7 +1301,7 @@ if __name__ == '__main__':
         #plot_timeseries(results,save_spec) #illustrate averaging by plotting timeseries of one day
         pass 
 
-    boxplot(results,av_min=av_min)
+    boxplot(results,av_min=av_min,day=onlydate)
 
     #shuffle order to make scatter plot more objective (otherways last days are most visible)
     if onlydate=="":
@@ -1273,15 +1310,14 @@ if __name__ == '__main__':
         results = results.reindex(time=time_shuffled).copy()
 
     #1. do some quality filters (rimed/unrimed, small fluxes)
-    filterZeflux  = 20
+    filterZeflux  = 100
 
     save_spec = get_save_string(onlydate,filterZeflux=filterZeflux)
     #filter small fluxes
-    results = results.where((results["MDVxT"] * results["ZeXt"])  >filterZeflux)
-    results = results.where((results["MDVxB"] * results["ZeXt"]/0.23)  >filterZeflux)
-    results = results.where((results["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
+    results = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
+    results = results.where((results["MDVxB"] * Bd(results["ZeXt"])/0.23)  >filterZeflux)
     #plot with different filters
-    profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
+    #profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
     #profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,correct_w_before_categorization=True)
 
     #filter RH
@@ -1290,7 +1326,7 @@ if __name__ == '__main__':
     save_spec = get_save_string(onlydate,filterZeflux=filterZeflux,RHbt=RHbt)
 
     #plots with RH filtered
-    profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
+    #profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
 
     if onlydate!="":
         #plot_refl_flux_vs_allvars_scatter(results,save_spec,av_min,obs_pam="obs",plot_time=True)
