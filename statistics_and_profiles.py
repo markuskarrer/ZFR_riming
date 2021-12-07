@@ -84,8 +84,17 @@ def categorize_part_type(var,MDVxT,DWRxkT,var_coll,varKey,i,clustering_char):
 def dB(x): #conversion: linear [mm**6/m**3] to logarithmic [dB]
     return 10.0*np.log10(x)
 
-def Bd(x): #conversion: logarithmic [dB] to linear [mm*6/m**3]
+def Bd(x): #conversion: logarithmic [dB] to linear [mm**6/m**3]
     return 10.0**(0.1*x)
+
+def Z_R_MarshallPalmer(R): #reflectivity-rain relationship from Marshall and Palmer (1948)
+    return 200*R**1.6 #Z in dB, R in mm**6/m**4
+
+def R_Z_MarshallPalmer(Z): #rain-reflectivity relationship from Marshall and Palmer (1948)
+    return (Z/200.)**(1./1.6) #Z in mm**6/m**3, R in mm/h
+
+def attR_Matrosov(R): #relationship between attenuation and rain rate at X-Band
+    return 0.048*R**1.05 #att in dB rain in mm/h
 
 def get_observed_melting_properties(onlydate="",av_min=0,calc_or_load=1,no_mie_notch=False,profiles=False):
 
@@ -184,12 +193,15 @@ def get_observed_melting_properties(onlydate="",av_min=0,calc_or_load=1,no_mie_n
  
     ###NEW ZFR definition: 1 for 1to1 melting; higher for collision, lower for break-up
 
-    results["ZFR"] = (results["MDVxB"] - 0.0) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * Bd(results["ZeXt"]))  * 0.23
-    results["ZFRattCorr"] = (results["MDVxB"] - 0.0) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * (Bd(results["ZeXt"]+attMelt)))  * 0.23 #attMelt is the attenuation in dB
-    results["ZFRvCorrB"] = (results["MDVxB"] - results["w_estB"]) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * Bd(results["ZeXt"]))  * 0.23
-    results["ZFRvCorrT"] =  results["MDVxB"]                     * Bd(results["ZeXb"]) / ((results["MDVxT"]-results["w_estT"])  * Bd(results["ZeXt"]))  * 0.23
+    results["RRfromZR"] = R_Z_MarshallPalmer(Bd(results["ZeXb"])) #get rain rate from Z-R relation
+    results["attMelt"] = attR_Matrosov(results["RRfromZR"])
+    K_factor = 0.24 #TODO: replace this with values found with Bruggemann formulat
+    results["ZFR"] = np.log10((results["MDVxB"] - 0.0) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * (Bd(results["ZeXt"]+results["attMelt"])))  * K_factor)
+    results["ZFRattCorr"] = np.log10( (results["MDVxB"] - 0.0) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * ((Bd(results["ZeXt"]+results["attMelt"]))))  * K_factor) #attMelt is the attenuation in dB
+    results["ZFRvCorrB"] = np.log10( (results["MDVxB"] - results["w_estB"]) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * (Bd(results["ZeXt"]+results["attMelt"])))  * K_factor)
+    results["ZFRvCorrT"] = np.log10(  results["MDVxB"]                     * Bd(results["ZeXb"]) / ((results["MDVxT"]-results["w_estT"])  * (Bd(results["ZeXt"]+results["attMelt"])))  * K_factor)
 
-    results["ZFRvCorr"]  = (results["MDVxB"] - results["w_estB"]) * Bd(results["ZeXb"]) /((results["MDVxT"]-results["w_estT"]) * Bd(results["ZeXt"]))  * 0.23
+    results["ZFRvCorr"]  = np.log10(( results["MDVxB"] - results["w_estB"]) * Bd(results["ZeXb"]) /((results["MDVxT"]-results["w_estT"]) * (Bd(results["ZeXt"]+results["attMelt"])))  * K_factor)
 
     results["Delta_ZF_upper"]           =  (results["ZfluxX_thirdML"]) / (-results["MDVxT"] * results["ZeXt"]) #increase of reflectivity flux in upper (half/two thirds/...)
     results["Delta_ZF_lower"]           =  ((-results["MDVxB"]*Bd(results["ZeXb"]))- results["ZfluxX_thirdML"]) / (-results["MDVxT"] * Bd(results["ZeXt"])) #increase of reflectivity flux in upper (half/third/...)
@@ -950,7 +962,6 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None):
     ONLYbci: show only panels b) c) and i) (for presentation)
     day: None: all days; otherways date in YYYYMMDD
     '''
-    set_trace()
     import seaborn as sns
     from matplotlib.ticker import MultipleLocator
     mpl.style.use('seaborn')
@@ -1047,8 +1058,8 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None):
             #showmeans=True,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
             showfliers = showfliers, flierprops={"marker":'o', "markersize":2,"alpha":0.01},
             ax=axes) 
-        ax.axhline(1.0,c="magenta",lw=2)
-        ax.set_ylim([0.0,2.1])
+        ax.axhline(0.0,c="magenta",lw=2)
+        #ax.set_ylim([0.0,2.1])
 
         plt.tight_layout() #rect=(0,0.00,1,1))
         #save figure
@@ -1115,7 +1126,7 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None):
         add_letters(ax,row=0)
 
     #add 1to1 melting line
-    ax.axhline(1.0,c="magenta",lw=2)
+    ax.axhline(0.0,c="magenta",lw=2)
     #limits and labels
     #ax.set_ylim([-0.5,1.25])
     #ax.set_ylim([-1.0,3.0])
@@ -1182,7 +1193,7 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None):
         showfliers = showfliers, flierprops={"marker":'o', "markersize":2,"alpha":0.01},
         ax=axes[1])  # RUN PLOT   
     ax.legend([],[], frameon=False) #remove legend because it is already in first subplot
-    ax.axhline(1.0,c="magenta",lw=2)
+    ax.axhline(0.0,c="magenta",lw=2)
     #limits and labels
     #ax.set_ylim([0.0,0.6])
     #ax.set_ylim([0.0,2.1])
@@ -1247,14 +1258,14 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None):
         showfliers = showfliers, flierprops={"marker":'o', "markersize":5,"alpha":0.01},
         ax=axes[2])  # RUN PLOT   
     ax.legend([],[], frameon=False) #remove legend because it is already in first subplot
-    ax.axhline(1.0,c="magenta",lw=2)
+    ax.axhline(0.0,c="magenta",lw=2)
     if not ONLYbci:
         add_letters(ax,row=2)
 
     #limits and labels
     #ax.set_yticks()
 
-    ax.set_ylim([0.0,2.1])
+    #ax.set_ylim([0.0,2.1])
     #ax.set_ylim([-0.5,1.25])
 
     for ax in axes.flatten():
