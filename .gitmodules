@@ -1,0 +1,3 @@
+[submodule "snowScatt"]
+	path = snowScatt
+	url = https://github.com/OPTIMICe-team/snowScatt.git
