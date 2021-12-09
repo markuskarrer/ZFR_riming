@@ -195,9 +195,11 @@ def get_observed_melting_properties(onlydate="",av_min=0,calc_or_load=1,no_mie_n
 
     results["RRfromZR"] = R_Z_MarshallPalmer(Bd(results["ZeXb"])) #get rain rate from Z-R relation
     results["attMelt"] = attR_Matrosov(results["RRfromZR"])
-    K_factor = 0.24 #TODO: replace this with values found with Bruggemann formulat
+    results["FZtop"] = results["MDVxT"] * (Bd(results["ZeXt"]+results["attMelt"]))
+    results["FZbot"] = results["MDVxB"] *  Bd(results["ZeXb"])
+
+    K_factor = 0.23 
     results["ZFR"] = np.log10((results["MDVxB"] - 0.0) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * (Bd(results["ZeXt"]+results["attMelt"])))  * K_factor)
-    results["ZFRattCorr"] = np.log10( (results["MDVxB"] - 0.0) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * ((Bd(results["ZeXt"]+results["attMelt"]))))  * K_factor) #attMelt is the attenuation in dB
     results["ZFRvCorrB"] = np.log10( (results["MDVxB"] - results["w_estB"]) * Bd(results["ZeXb"]) / (results["MDVxT"]                     * (Bd(results["ZeXt"]+results["attMelt"])))  * K_factor)
     results["ZFRvCorrT"] = np.log10(  results["MDVxB"]                     * Bd(results["ZeXb"]) / ((results["MDVxT"]-results["w_estT"])  * (Bd(results["ZeXt"]+results["attMelt"])))  * K_factor)
 
@@ -761,6 +763,8 @@ def get_vars(vars_out,res):
     all_dic["delz"]                = vars( "ML_thickness"   ,"$\Delta z_{melt}$ [m]"            ,[100.,600.]          )
     all_dic["rhT"]                 = vars( "RHt"            ,"RH$_{top}$ [%]"                   , [50,105]            )
     all_dic["rhB"]                 = vars( "RHb"            ,"RH$_{bottom}$ [%]"                , [70,105]            )
+    all_dic["FZtop"]                 = vars( "FZtop"            ,"F$_{Z,top}$ [mm$^6$ m$^{-3}$ m s$^{-1}$]"                , [1e1,1e4]            )
+    all_dic["FZbot"]                 = vars( "FZbot"            ,"F$_{Z,bottom}$ [mm$^6$ m$^{-3}$ m s$^{-1}$"                , [1e1,1e4]            )
 
     dic = dict()
     for key in vars_out:
@@ -881,10 +885,10 @@ def profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
                 low_quant = low_quant.rolling(min_periods=1,range=3).mean()
                 upp_quant = upp_quant.rolling(min_periods=1,range=3).mean()
                 med_quant = med_quant.rolling(min_periods=1,range=3).mean()
-            ax.plot(low_quant,varColl["F0" + ptype +key].range,label="__None",color=["blue","green","red"][i_ptype],lw=1,ls="-",alpha=0.5)
-            ax.plot(upp_quant,varColl["F0" + ptype +key].range,label="__None",color=["blue","green","red"][i_ptype],lw=1,ls="-",alpha=0.5)
-            ax.plot(med_quant,varColl["F0" + ptype +key].range,label=ptype,c=["blue","green","red"][i_ptype],lw=5)
-            ax.fill_betweenx(varColl["F0" + ptype +key].range,varColl["F0"+ ptype + key].quantile(0.25,dim="time"),varColl["F0"+ ptype + key].quantile(0.75,dim="time"),label="__None",color=["blue","green","red"][i_ptype],lw=1,ls="-",alpha=0.1)
+            ax.plot(low_quant,varColl["F0" + ptype +key].range,label="__None",color=["blue","orange","red"][i_ptype],lw=1,ls="-",alpha=0.5)
+            ax.plot(upp_quant,varColl["F0" + ptype +key].range,label="__None",color=["blue","orange","red"][i_ptype],lw=1,ls="-",alpha=0.5)
+            ax.plot(med_quant,varColl["F0" + ptype +key].range,label=ptype,c=["blue","orange","red"][i_ptype],lw=5)
+            ax.fill_betweenx(varColl["F0" + ptype +key].range,varColl["F0"+ ptype + key].quantile(0.25,dim="time"),varColl["F0"+ ptype + key].quantile(0.75,dim="time"),label="__None",color=["blue","orange","red"][i_ptype],lw=1,ls="-",alpha=0.1)
         
 
         #legend limits etc.
@@ -925,7 +929,7 @@ def profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
                     fmelt.append(res)
                 fmelt = np.array(fmelt)
                 ax2 = ax.twiny()
-                ax2.plot(fmelt,varColl["F0" + ptype +key].range,label="__",c=["blue","green","red"][i_ptype],lw=2,ls="--")
+                ax2.plot(fmelt,varColl["F0" + ptype +key].range,label="__",c=["blue","orange","red"][i_ptype],lw=2,ls="--")
                 if i_ptype==0:
                     ax2.plot(np.nan,np.nan,ls="--",c="k",label="$f_{melt}$")
                     ax2.legend()
@@ -1287,6 +1291,76 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None):
     print("pdf is at: ",savestr + '.pdf')
     plt.clf()
 
+def plot_timeseries(results,save_spec):
+    '''
+    plot timeseries
+    '''
+    import matplotlib.dates as mdates
+
+    vars_dict = get_vars(["FZtop","FZbot"],results)
+
+    #set-up figure
+    fig,axes = plt.subplots(nrows=len(vars_dict.keys()),figsize=(12,len(vars_dict.keys())*2),sharex=True)
+
+    #plot not-averaged timeseries
+    for i_var,(key,ax) in enumerate(zip(vars_dict.keys(),axes.flatten())):
+        var = vars_dict[key]
+        if not any(~np.isnan(vars_dict[key].data)):
+            print("no data for key: ",key)
+            continue
+        #plot timeseries
+        ax.semilogy(var.data.time.values,var.data.values,lw=1,label="no av.",c="k")
+
+        # Major ticks every 6 months.
+        fmt = mdates.HourLocator(interval=1)
+        ax.xaxis.set_major_locator(fmt)
+
+        # Minor ticks every month.
+        fmt = mdates.MinuteLocator([10,20,30,40,50])
+        #fmt = mdates.MinuteLocator(interval=1)
+        ax.xaxis.set_minor_locator(fmt)
+
+        ax.grid(b=True,which="major")
+        ax.grid(b=True,which="minor",linewidth=0.2,linestyle="--")
+
+        #activate axis labels for all plots
+        myFmt = mdates.DateFormatter('%H')
+        ax.xaxis.set_major_formatter(myFmt)
+        ax.xaxis.set_tick_params(which='major', labelbottom=True) 
+        myFmt_minor = mdates.DateFormatter('%M')
+        ax.xaxis.set_minor_formatter(myFmt_minor)
+        ax.xaxis.set_tick_params(which='minor', labelbottom=True,labelsize=4) #activate axis labels for all plots
+
+        if key.startswith("ZFR"):
+            ax.axhline(1.0, label='$\mu$', lw=3, color='magenta')
+        ax.set_ylabel(var.plot_label)
+        #apply limits
+        ax.set_ylim(var.lims)
+        #loop over average windows
+        for i_av,av_min in enumerate([]): #"1","5","10"]):
+            #for i_var,(key,ax) in enumerate(zip(vars_dict.keys(),axes.flatten())):
+            if not var.results_name.startswith("peak"):
+                if "s" in av_min:
+                    av_sec = int(av_min[:-1])
+                    var_av = var.data.rolling(min_periods=int(av_sec/8),center=True,time=int(av_sec/4)).mean().copy() #min_periods=av_min/8 -> more than 50% in the averaging box must be non-nan
+                else:
+                    var_av = var.data.rolling(min_periods=int(int(av_min)*15/2),center=True,time=int(int(av_min)*15)).mean().copy() #min_periods=int(av_min*15/2)-> more than 50% in the averaging box must be non-nan
+                ax.semilogx(var_av.time.values,var_av,lw=1,label="av" + str(av_min) + "min")
+            
+
+        if i_var==(len(vars_dict.keys())-1):
+            ax.set_xlabel("time")
+            plt.legend()
+
+    plt.tight_layout()
+    #save figure
+    savestr = 'plots/days/timeseries_' + save_spec 
+
+    plt.savefig(savestr + '.png')
+    plt.savefig(savestr + '.pdf')
+    #print("png is at: ",savestr + '.png')
+    print("pdf is at: ",savestr + '.pdf')
+    plt.clf()
 if __name__ == '__main__':
 
     parser =  argparse.ArgumentParser(description='plot melting statistics')
@@ -1312,13 +1386,16 @@ if __name__ == '__main__':
         #plot_timeseries(results,save_spec) #illustrate averaging by plotting timeseries of one day
         pass 
 
-    boxplot(results,av_min=av_min,day=onlydate)
+    #boxplot(results,av_min=av_min,day=onlydate)
 
     #shuffle order to make scatter plot more objective (otherways last days are most visible)
     if onlydate=="":
         rand_index = np.random.permutation(results.ZFR.shape[0]).copy()
         time_shuffled = results.ZFR.time.isel(time=rand_index)
         results = results.reindex(time=time_shuffled).copy()
+    else:
+        
+        plot_timeseries(results,save_spec) #illustrate averaging by plotting timeseries of one day
 
     #1. do some quality filters (rimed/unrimed, small fluxes)
     filterZeflux  = 100

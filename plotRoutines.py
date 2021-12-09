@@ -19,7 +19,7 @@ def Bd(x): #conversion: logarithmic [dB] to linear [mm*6/m**3]
     return 10.0**(0.1*x)
 
     
-def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str="",Kratio=0.24):
+def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str="",Kratio=0.23):
 
     ###special colormap for MDV
     # sample the colormaps that you want to use. Use 128 from each so we get 256
@@ -88,11 +88,11 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     for i_var,(height,var,label,lims,ax) in enumerate(zip(
                                                           [LDRall.range,ZeX.range,MDVx.range,DWRxk.range], #yvar
                                                           [LDRall,ZeX,MDVx,DWRxk], 
-                                                          ['LDR$_{Ka}$ [dB]','Ze$_{X}$ [dB]','MDV$_X$ [m/s]','DWR$_{X,Ka}$ [dB]'], #label
+                                                          ['LDR$_{Ka}$ [dB]','Ze$_{X}$ [dBz]','MDV$_X$ [m s$^{-1}$]','DWR$_{X,Ka}$ [dB]'], #label
                                                           [[-50,-5],[0,35],[0,MDV_max],[-2,15]], #xlims
                                                           axes.flatten())):
         plt.text(-0.15, 0.95,letters[i_var],horizontalalignment='left',verticalalignment='bottom',transform = ax.transAxes,fontsize=30,color="k")
-        if label=='MDV$_X$ [m/s]':
+        if label=='MDV$_X$ [m s$^{-1}$]':
             cmap = mymap
             bounds = np.hstack((np.linspace(0,2.5,128), np.linspace(2.5,MDV_max,128)))
             norm = mcolors.BoundaryNorm(boundaries=bounds, ncolors=bounds.shape[-1])
@@ -155,11 +155,11 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     #add boxes to differentiate time ranges 
     for i in np.arange(len(ptype_flag.values)-1):
         if ~np.isnan(ptype_flag.values[i]):
-            ax.plot([var.time.values[i],var.time.values[i+1]],[ax.get_ylim()[0],ax.get_ylim()[0]],c=["blue","green","red"][int(ptype_flag.values[i])],lw=15)
+            ax.plot([var.time.values[i],var.time.values[i+1]],[ax.get_ylim()[0],ax.get_ylim()[0]],c=["blue","orange","red"][int(ptype_flag.values[i])],lw=15)
 
 
     ax.legend(loc="upper left",ncol=2,bbox_to_anchor=(0.00, 1.15),fontsize=20)
-    ax.set_ylabel("MDV [m/s]",fontsize=20)
+    ax.set_ylabel("MDV [m s$^{-1}$]",fontsize=20)
     ax2.legend(loc="upper right",ncol=1,bbox_to_anchor=(1.05, 1.15),fontsize=20)
     ax2.set_ylabel("DWR [dB]",fontsize=20)
     ax2.tick_params(axis='y',labelsize=20)
@@ -189,8 +189,8 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
         else:
             ZFR = np.log10(ZFbottom/ZFtop*Kratio)
             ax.plot(ZeX.time,ZFR,c="k",label="ZFR$_{" + label_av,ls=ls,lw=lw)
-        ax2.semilogy(ZeX.time,ZFtop,c="orange",label="ZF$_{top," + label_av,ls=ls,lw=lw)
-        ax2.semilogy(ZeX.time,ZFbottom*Kratio,c="g",label="ZF$_{bottom," + label_av +  "/$K_{ratio}$",ls=ls,lw=lw)
+        ax2.semilogy(ZeX.time,ZFtop,c="orange",label="F$_{Z,top," + label_av,ls=ls,lw=lw)
+        ax2.semilogy(ZeX.time,ZFbottom*Kratio,c="g",label="F$_{Z,bottom," + label_av +  "/0.23",ls=ls,lw=lw)
     ax.set_ylim([-1.0,1.0]) #[0.23-0.23,0.23+0.23])
     #mark regions with too low fluxes
     for i in np.arange(len(ptype_flag.values)-1):
@@ -204,7 +204,7 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     ax.tick_params(axis='x',labelsize=20)
     ax.tick_params(axis='y',labelsize=20)
     ax2.legend(loc="upper right",ncol=2,bbox_to_anchor=(1.05, 1.27),fontsize=20)
-    ax2.set_ylabel("ZF [mm$^6$ m/s]",fontsize=20)
+    ax2.set_ylabel("ZF [mm$^6$ m s$^{-1}$]",fontsize=20)
     ax2.tick_params(axis='y',labelsize=20)
     ax2.yaxis.grid(b=True,which="major",linestyle="--",c="k")
     #ax2.yaxis.grid(b=True,which="minor",linestyle="",c="k")
@@ -275,7 +275,7 @@ def categorize_part_type_timeseries(MDVxT,DWRxkT):
 
     return ptype_flag
     
-def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_all_times=False,Kratio=0.24):
+def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_all_times=False,Kratio=0.23):
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     import postProcessSpectra as post
     
@@ -367,9 +367,9 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
             MDVxTop = MDVx.sel(range=MLtop_t).values
             #MDVxTop500 = MDVx.sel(range=MLtop+500).values #has to match an existin value #TODO: use resample.nearest ?
             MDVxBot = MDVx.sel(range=MLbottom_t).values
-            MDV_str = ("MDV$_{X,top}$=" + "{0:.2f}m/s".format(MDVxTop) +
+            MDV_str = ("MDV$_{X,top}$=" + "{0:.2f}m".format(MDVxTop) +" s^{-1}" +
                 #"\nMDV$_{X,top}+500m$=" + "{0:.2f}m/s".format(MDVxTop500) 
-                    "\nMDV$_{X,bottom}$=" + "{0:.2f}m/s".format(MDVxBot))
+                    "\nMDV$_{X,bottom}$=" + "{0:.2f}m".format(MDVxBot) +"s^{-1}")
             #DWRxkTop
             DWRxkT = DWRxk.sel(range=MLtop_t).values #(ZeK.sel(range=MLtop)-ZeW.sel(range=MLtop)).values
             DWRxk_str = "DWR$_{X,Ka,TopML}$=" + "{0:.2f}dB\n".format(DWRxkT)
@@ -415,7 +415,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                     print("mie-notches","h",height.values,"actual notch",DV_notch,"theor. notch",theo_notch_terminal_vel,w_est_liq)
 
             #Peaks_now = Peaks.sel(range=height)).copy() #all peaks in 5 min interval at ML bottom
-            w_str = "w$_{top}$=" + "{0:.2f}m/s ".format(wtop_est) + "\n" + "w$_{bot}$=" + "{0:.2f}m/s ".format(wbot_est)
+            w_str = "w$_{top}$=" + "{0:.2f}".format(wtop_est) + "m s$^{-1}$ " + "\n" + "w$_{bot}$=" + "{0:.2f}".format(wbot_est) + "m s$^{-1}$"
     
             if ~np.isnan(wtop_est) or ~np.isnan(wbot_est):
                 w_detected_str = "_w"
@@ -475,7 +475,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
         for i_var,(height,xvar,label,xlims,ax) in enumerate(zip(
                                                               [ZeX.range,ZfluxX.range], #yvar
                                                               [ZeX,ZfluxX], 
-                                                              ['Ze$_{X}$ [dBz]','F$_{Z,X}$ [mm$^6$/ (m/s)]'], #label
+                                                              ['Ze$_{X}$ [dBz]','F$_{Z,X}$ [mm$^6$ m$^{-1}$ s]'], #label
                                                               [[15,35],[1e2,1e4]], #xlims
                                                               axes[2:3,:].flatten())):
             #plot
@@ -512,7 +512,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                                                               #[specKa.dopplerKa,specKaV.dopplerKa,specKaHstrongnoisecorr.dopplerKa,LDRspecW.dopplerW,LDRspecKa.dopplerKa,LDRspecKaNoiseCorr.dopplerKa], #xvar 
                                                               [specW.range,specKa.range,specX.range,LDRspecKa.range,specDWRkw.range,specDWRxk.range], #yvar
                                                               [specW,specKa,specX,LDRspecKa], #,specDWRkw,specDWRxk], #var
-                                                              ['z$_{W}$ [dB]','z$_{Ka}$ [dB]','z$_{X}$ [dB]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
+                                                              ['z$_{W}$ [dBz m s$^{-1}$]','z$_{Ka}$ [dBz m s$^{-1}$]','z$_{X}$ [dBz m s$^{-1}$]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
                                                               [[-1,11],[-1,11],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
                                                               [[-45,10],[-45,10],[-45,10],[-30,-5],[-5,20],[-5,20]], #,[-5,20]],# ,[-0.5,3]], #lims (colorbar)
                                                               #[axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
@@ -581,7 +581,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
             ax.axhline(MLbottom_t,color="silver")
             #ticks    
             #labels
-            ax.set_xlabel('DV [m/s]')
+            ax.set_xlabel('DV [m s$^{-1}$]')
             #grid and lims
             ax.grid(True,zorder=-1000) #,ls='-.')
             ax.set_xlim(xlims)
