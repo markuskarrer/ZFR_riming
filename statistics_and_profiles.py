@@ -12,6 +12,7 @@ import re
 import pickle
 import matplotlib.pyplot as plt
 import turbo_colormap_mpl
+import datetime
 turbo_colormap_mpl.register_turbo()
 
 from IPython.core.debugger import set_trace
@@ -764,7 +765,7 @@ def get_vars(vars_out,res):
     all_dic["rhT"]                 = vars( "RHt"            ,"RH$_{top}$ [%]"                   , [50,105]            )
     all_dic["rhB"]                 = vars( "RHb"            ,"RH$_{bottom}$ [%]"                , [70,105]            )
     all_dic["FZtop"]                 = vars( "FZtop"            ,"F$_{Z,top}$ [mm$^6$ m$^{-3}$ m s$^{-1}$]"                , [1e1,1e4]            )
-    all_dic["FZbot"]                 = vars( "FZbot"            ,"F$_{Z,bottom}$ [mm$^6$ m$^{-3}$ m s$^{-1}$"                , [1e1,1e4]            )
+    all_dic["FZbot"]                 = vars( "FZbot"            ,"F$_{Z,bottom}$ [mm$^6$ m$^{-3}$ m s$^{-1}]$"             , [1e1,1e4]            )
 
     dic = dict()
     for key in vars_out:
@@ -1291,6 +1292,39 @@ def boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None):
     print("pdf is at: ",savestr + '.pdf')
     plt.clf()
 
+def crosscorr(datax, datay, lag=0):
+    """ Lag-N cross correlation. 
+    Parameters
+    ----------
+    lag : int, default 0
+    datax, datay : pandas.Series objects of equal length
+
+    Returns
+    ----------
+    crosscorr : float
+    """
+    return datax.corr(datay.shift(lag))
+
+def crosscorrAllDay(FZtop,FZbot,Delta_t):
+    '''
+    Make a cross-correlation between the refl. flux ...
+        ... at the ML top (FZtop) ...
+        .... and ML bottom (FZbot)
+        Delta_t: time step in data [probably 4s]
+    '''
+
+    #simple correlation
+    corr_non_shifted = FZtop.corr(FZbot)
+
+    best_corr = [0,corr_non_shifted] #[position,corr-coeff]
+    for lag in range(-75,75,1): #this goes 5 minutes back-/forward
+        lag_s = Delta_t*lag
+        corr_shifted = crosscorr(FZtop,FZbot,lag=lag)
+        if corr_shifted>best_corr[1]:
+            best_corr = [lag_s,corr_shifted]
+
+    return best_corr
+
 def plot_timeseries(results,save_spec):
     '''
     plot timeseries
@@ -1299,18 +1333,176 @@ def plot_timeseries(results,save_spec):
 
     vars_dict = get_vars(["FZtop","FZbot"],results)
 
+    vars_dict["FZtop"].data = vars_dict["FZtop"].data.sel(time=slice("2019-01-13T05:30:00","2019-01-13T09:30:00"))
+    vars_dict["FZbot"].data = vars_dict["FZbot"].data.sel(time=slice("2019-01-13T05:30:00","2019-01-13T09:30:00"))
+
     #set-up figure
-    fig,axes = plt.subplots(nrows=len(vars_dict.keys()),figsize=(12,len(vars_dict.keys())*2),sharex=True)
+    nrows   = 7
+    fig,axes = plt.subplots(nrows=nrows,figsize=(12,nrows*2),sharex=True)
 
     #plot not-averaged timeseries
-    for i_var,(key,ax) in enumerate(zip(vars_dict.keys(),axes.flatten())):
+    ax = axes[0]
+    for i_var,key in enumerate(vars_dict.keys()):
         var = vars_dict[key]
-        if not any(~np.isnan(vars_dict[key].data)):
-            print("no data for key: ",key)
-            continue
         #plot timeseries
-        ax.semilogy(var.data.time.values,var.data.values,lw=1,label="no av.",c="k")
+        ax.semilogy(var.data.time.values,var.data.values,lw=1,color=["r","b"][i_var],label=["top","bottom"][i_var])
+        ax.set_ylabel("F$_{Z}$ [mm$^{6}$ m$^{-3}$ m s$^{-1}$]")
+        #apply limits
+        ax.set_ylim([1e-1,1e4])
+        #loop over average windows
+        for i_av,av_min in enumerate([]): #"1","5","10"]):
+            #for i_var,(key,ax) in enumerate(zip(vars_dict.keys(),axes.flatten())):
+            if not var.results_name.startswith("peak"):
+                if "s" in av_min:
+                    av_sec = int(av_min[:-1])
+                    var_av = var.data.rolling(min_periods=int(av_sec/8),center=True,time=int(av_sec/4)).mean().copy() #min_periods=av_min/8 -> more than 50% in the averaging box must be non-nan
+                else:
+                    var_av = var.data.rolling(min_periods=int(int(av_min)*15/2),center=True,time=int(int(av_min)*15)).mean().copy() #min_periods=int(av_min*15/2)-> more than 50% in the averaging box must be non-nan
+                ax.semilogy(var_av.time.values,var_av,lw=1,color=["r","b"][i_var],label=["top","bottom"][i_var])
+    ax.legend() 
 
+    #plot ZFR
+    ZFR_orig = np.log10(vars_dict["FZbot"].data.values/vars_dict["FZtop"].data.values)
+    axes[1].plot(vars_dict["FZbot"].data.time.values,ZFR_orig,lw=1,label="no av.",c="k")
+    axes[1].set_ylabel("ZFR (not shifted)")
+    axes[1].set_ylim([-1.5,1.5])
+
+    #####################
+    ####Auto-correlations
+    #####################
+    if True:
+
+        #first bring data in right format
+        FZtop = vars_dict["FZtop"].data.to_series()
+        FZbot = vars_dict["FZbot"].data.to_series()
+        Delta_t = np.array((vars_dict["FZtop"].data.time[1]-vars_dict["FZtop"].data.time[0]).astype(int)/1e9)
+
+        ############### 
+        #full day - find best correlation of original and shifted data
+        ###############
+        av_periods = 30 #smooth timeseries before calculating the cross-correlation
+        FZtopAv = FZtop.rolling(av_periods, min_periods=1).mean()
+        FZbotAv = FZbot.rolling(av_periods, min_periods=1).mean()
+        best_corr = crosscorrAllDay(FZtopAv,FZbotAv,Delta_t)
+        ind_shift = int(best_corr[0]/Delta_t)
+        print("best correlation full day with lag ",best_corr[0], "s :", best_corr[1])
+
+        ax = axes[2]
+        for i_var,key in enumerate(["FZtop","FZbotShifted"]):
+            #shift FZbottom in time
+            if key=="FZbotShifted":
+                vars_dict["FZbotShifted"] = vars_dict["FZbot"]
+                vars_dict["FZbotShifted"].data["time"]= vars_dict["FZbotShifted"].data.time + pd.Timedelta(seconds=best_corr[0]*Delta_t)
+                FZbot = vars_dict["FZbot"].data.to_series()
+            var = vars_dict[key]
+
+            #plot timeseries
+            ax.semilogy(var.data.time.values,var.data.values,lw=1,color=["r","b"][i_var],label=["top","bottom ($\Delta$t="+ str(best_corr[0]) +"s)"][i_var])
+            ax.set_ylabel("F$_{Z}$ [mm$^{6}$ m$^{-3}$ m s$^{-1}$]")
+            #apply limits
+            ax.set_ylim([1e-1,1e4])
+        ax.legend()
+
+        #plot shifted ZFR
+        if ind_shift==0:
+            ZFR_shifted = np.log10(vars_dict["FZbotShifted"].data.values/vars_dict["FZtop"].data.values)
+            axes[3].plot(vars_dict["FZtop"].data.time.values,ZFR_shifted,lw=1,c="k")
+        elif ind_shift<0:
+            ZFR_shifted = np.log10(vars_dict["FZbotShifted"].data.values[-ind_shift:]/vars_dict["FZtop"].data.values[:ind_shift])
+            axes[3].plot(vars_dict["FZtop"].data.time.values[:ind_shift],ZFR_shifted,lw=1,c="k")
+        elif ind_shift>0:
+            ZFR_shifted = np.log10(vars_dict["FZbotShifted"].data.values[ind_shift:]/vars_dict["FZtop"].data.values[:-ind_shift])
+            axes[3].plot(vars_dict["FZtop"].data.time.values[:-ind_shift],ZFR_shifted,lw=1,c="k")
+        axes[3].set_ylabel("ZFR (shifted)")
+        axes[3].set_ylim([-1.5,1.5])
+
+        #t_intArray = [60]
+        t_int = 60 #moving window width [min]
+        save_spec+= "t_int" + str(t_int)
+        best_corrAll = np.nan*np.zeros([1,FZtop.shape[0],2])
+
+        counter=0
+        #for i_t_int,t_int in enumerate(t_intArray):   #moving window [min] for which correlation is checked
+        t_ind_range = int(t_int*60/Delta_t) #number of indices which correspond to t_int #*60 from min->sec #/Delta_t to consider timestep
+
+        moving=True
+        if moving:
+            ax=axes[5]
+            blue1 = "b"
+            blue2 = "skyblue"
+            for i_tranges,(t_start,t_end) in enumerate(zip(np.arange(t_ind_range,FZtop.shape[0],t_ind_range),np.arange(2*t_ind_range,FZtop.shape[0],t_ind_range))):
+                if i_tranges%2==0:  
+                    blue=blue1
+                else:
+                    blue=blue2
+                if all(np.isnan(FZtop[t_start:t_end])): #skip calculations if all is Nan anyway
+                    continue
+                t_startHHMM = pd.to_datetime(vars_dict["FZtop"].data.time[t_start].values).strftime('%H:%M:%S')
+                t_endHHMM = pd.to_datetime(vars_dict["FZtop"].data.time[t_end].values).strftime('%H:%M:%S')
+
+                #first calculate correlation of non-shifted timeseries "as a reference"
+                corr_non_shifted = FZtop[t_start:t_end].corr(FZbot[t_start:t_end])
+                best_corrNow = [0,corr_non_shifted] #[position,corr-coeff]
+
+                for lag in range(-50,50,1): #this goes ... minutes back-/forward
+    
+                    t_startLagHHMM = pd.to_datetime(vars_dict["FZtop"].data.time[t_start].values) + pd.Timedelta(seconds=Delta_t*lag)
+                    t_endLagHHMM   = pd.to_datetime(vars_dict["FZtop"].data.time[t_end].values) + pd.Timedelta(seconds=Delta_t*lag)
+                    
+                    FZtopAv = FZtop[t_start:t_end].rolling(av_periods, min_periods=1).mean()
+                    FZbotAv = FZbot[t_start:t_end].rolling(av_periods, min_periods=1).mean()
+                    best_corr = crosscorrAllDay(FZtopAv,FZbotAv,Delta_t)
+                    best_corrAll[0,int((t_start+t_end)/2)] = crosscorrAllDay(FZtopAv,FZbotAv,Delta_t)
+                    #best_corrAll[0,int((t_start+t_end)/2)] = crosscorrAllDay(FZtop[t_start:t_end],FZbot[t_start:t_end],Delta_t)
+
+                    #corr_shifted = crosscorr(FZtop[t_start:t_end],FZbot[t_start:t_end],lag=lag)
+                    ##print("lag [s]",lag*Delta_t,"corr",corr_shifted)
+                    #if corr_shifted>best_corrNow[1]:
+                    #    best_corrAll[0,int((t_start+t_end)/2)] = [lag,corr_shifted]
+                    #    counter+=1
+                print("best correlation between", t_startHHMM,t_endHHMM , best_corrAll[0,int((t_start+t_end)/2),0]*Delta_t, "s :", best_corrAll[0,int((t_start+t_end)/2),1])
+
+
+                for i_var,key in enumerate(["FZtop","FZbotShifted"]):
+                    #shift FZbottom in time
+                    if key=="FZbotShifted":
+                        vars_dict["FZbotShifted"] = vars_dict["FZbot"]
+                        vars_dict["FZbotShifted"].data["time"]= vars_dict["FZbotShifted"].data.time + pd.Timedelta(seconds=-best_corr[0]*Delta_t)
+                    var = vars_dict[key]
+                    var.data = var.data.rolling(time=av_periods, min_periods=1).mean()
+
+                    #plot timeseries
+                    ax.semilogy(var.data.time.values[t_start:t_end],var.data.values[t_start:t_end],lw=1,color=["r",blue][i_var])
+                #ax.semilogy(var.data.time.values,var.data.values,lw=1,color=["r",blue][i_var])
+                ax.set_ylabel("F$_{Z}$ [mm$^{6}$ m$^{-3}$ m s$^{-1}$]")
+                #apply limits
+                ax.set_ylim([1e-1,1e4])
+            ax.legend()
+
+            #plot best shift and it's correlation coefficient
+            ZFR_orig = np.log10(vars_dict["FZbot"].data.values/vars_dict["FZtop"].data.values)
+            #axes[4].plot(vars_dict["FZbot"].data.time.values,best_corrAll[0,:,0]*Delta_t,lw=1,label="no av.",c="k")
+            axes[4].scatter(vars_dict["FZtop"].data.time.values,best_corrAll[0,:,0]*Delta_t/60.,marker="x",c="k")
+            axes[4].set_ylabel("Best Lag [min]")
+            print("time",vars_dict["FZtop"].data.time.values[~np.isnan(best_corrAll[0,:,0])],"lag",best_corrAll[0,:,0][~np.isnan(best_corrAll[0,:,0])]*Delta_t/60.)
+
+            ##plot corr-coeff for lag with highest coeff
+            #ZFR_orig = np.log10(vars_dict["FZbot"].data.values/vars_dict["FZtop"].data.values)
+            ##axes[5].plot(vars_dict["FZbot"].data.time.values,best_corrAll[0,:,1],lw=1,label="no av.",c="k")
+            #axes[5].plot(vars_dict["FZbot"].data.time.values,best_corrAll[0,:,1],marker="x",c="k")
+            #axes[5].set_ylabel("Best corr. coeff.")
+
+            ##ZFR when considering shifted F_Z
+            ##lag_ind = np.where(~np.isnan(best_corrAll[0,:,0]),best_corrAll[0,:,0],0).astype(int).tolist() #convert the best_corrAll to a list of indices
+            #lag_ind = best_corrAll[0,:,0].astype(int).tolist() #convert the best_corrAll to a list of indices
+            #lag_ind = lag_ind + np.arange(0,len(best_corrAll[0,:,0])) #sum of lag and original index gives the new index
+            ##vars_dict["FZbot"].data.values[best_corrAll[0,:,1]]
+            #ZFR_new = np.log10(vars_dict["FZbot"].data.values[lag_ind]/vars_dict["FZtop"].data.values)
+            #axes[6].plot(vars_dict["FZbot"].data.time.values,ZFR_new,lw=1,label="no av.",c="k")
+            axes[6].set_ylabel("ZFR (shifted)")
+            axes[6].set_ylim([-1.5,1.5])
+
+    for ax in axes:
         # Major ticks every 6 months.
         fmt = mdates.HourLocator(interval=1)
         ax.xaxis.set_major_locator(fmt)
@@ -1327,30 +1519,13 @@ def plot_timeseries(results,save_spec):
         myFmt = mdates.DateFormatter('%H')
         ax.xaxis.set_major_formatter(myFmt)
         ax.xaxis.set_tick_params(which='major', labelbottom=True) 
-        myFmt_minor = mdates.DateFormatter('%M')
-        ax.xaxis.set_minor_formatter(myFmt_minor)
-        ax.xaxis.set_tick_params(which='minor', labelbottom=True,labelsize=4) #activate axis labels for all plots
 
-        if key.startswith("ZFR"):
-            ax.axhline(1.0, label='$\mu$', lw=3, color='magenta')
-        ax.set_ylabel(var.plot_label)
-        #apply limits
-        ax.set_ylim(var.lims)
-        #loop over average windows
-        for i_av,av_min in enumerate([]): #"1","5","10"]):
-            #for i_var,(key,ax) in enumerate(zip(vars_dict.keys(),axes.flatten())):
-            if not var.results_name.startswith("peak"):
-                if "s" in av_min:
-                    av_sec = int(av_min[:-1])
-                    var_av = var.data.rolling(min_periods=int(av_sec/8),center=True,time=int(av_sec/4)).mean().copy() #min_periods=av_min/8 -> more than 50% in the averaging box must be non-nan
-                else:
-                    var_av = var.data.rolling(min_periods=int(int(av_min)*15/2),center=True,time=int(int(av_min)*15)).mean().copy() #min_periods=int(av_min*15/2)-> more than 50% in the averaging box must be non-nan
-                ax.semilogx(var_av.time.values,var_av,lw=1,label="av" + str(av_min) + "min")
-            
+        #myFmt_minor = mdates.DateFormatter('%M')
+        #ax.xaxis.set_minor_formatter(myFmt_minor)
+        #ax.xaxis.set_tick_params(which='minor', labelbottom=True,labelsize=4) #activate axis labels for all plots
 
-        if i_var==(len(vars_dict.keys())-1):
-            ax.set_xlabel("time")
-            plt.legend()
+    ax.set_xlabel("time [h]")
+    #plt.legend()
 
     plt.tight_layout()
     #save figure
@@ -1381,10 +1556,6 @@ if __name__ == '__main__':
     results = get_observed_melting_properties(onlydate=onlydate,av_min=av_min,calc_or_load=calc_or_load,no_mie_notch=no_mie_notch) #calc_or_load: 1: calculate each day 0: load each day
     filterZeflux  = 999
     save_spec = get_save_string(onlydate,filterZeflux=filterZeflux)
-
-    if av_min=="0" and onlydate!="":
-        #plot_timeseries(results,save_spec) #illustrate averaging by plotting timeseries of one day
-        pass 
 
     #boxplot(results,av_min=av_min,day=onlydate)
 
