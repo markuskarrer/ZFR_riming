@@ -18,6 +18,8 @@ turbo_colormap_mpl.register_turbo()
 def Bd(x): #conversion: logarithmic [dB] to linear [mm*6/m**3]
     return 10.0**(0.1*x)
 
+def dB(x): #conversion: linear [mm*6/m**3] to logarithmic [dB] 
+    return np.log10(10.*x)
     
 def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str="",Kratio=0.23):
 
@@ -204,7 +206,7 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     ax.tick_params(axis='x',labelsize=20)
     ax.tick_params(axis='y',labelsize=20)
     ax2.legend(loc="upper right",ncol=2,bbox_to_anchor=(1.05, 1.27),fontsize=20)
-    ax2.set_ylabel("ZF [mm$^6$ m s$^{-1}$]",fontsize=20)
+    ax2.set_ylabel("$F_Z$ [mm$^6$ m s$^{-1}$]",fontsize=20)
     ax2.tick_params(axis='y',labelsize=20)
     ax2.yaxis.grid(b=True,which="major",linestyle="--",c="k")
     #ax2.yaxis.grid(b=True,which="minor",linestyle="",c="k")
@@ -512,7 +514,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                                                               #[specKa.dopplerKa,specKaV.dopplerKa,specKaHstrongnoisecorr.dopplerKa,LDRspecW.dopplerW,LDRspecKa.dopplerKa,LDRspecKaNoiseCorr.dopplerKa], #xvar 
                                                               [specW.range,specKa.range,specX.range,LDRspecKa.range,specDWRkw.range,specDWRxk.range], #yvar
                                                               [specW,specKa,specX,LDRspecKa], #,specDWRkw,specDWRxk], #var
-                                                              ['z$_{W}$ [dBz m s$^{-1}$]','z$_{Ka}$ [dBz m s$^{-1}$]','z$_{X}$ [dBz m s$^{-1}$]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
+                                                              ['z$_{W}$ [dBz m$^{-1}$ s]','z$_{Ka}$ [dBz m$^{-1}$ s]','z$_{X}$ [dBz m$^{-1}$ s]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
                                                               [[-1,11],[-1,11],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
                                                               [[-45,10],[-45,10],[-45,10],[-30,-5],[-5,20],[-5,20]], #,[-5,20]],# ,[-0.5,3]], #lims (colorbar)
                                                               #[axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
