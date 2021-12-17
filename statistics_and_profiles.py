@@ -1709,6 +1709,81 @@ def plot_timeseries(results,save_spec):
     #print("png is at: ",savestr + '.png')
     print("pdf is at: ",savestr + '.pdf')
     plt.clf()
+
+def Histograms(results):
+    '''
+    plot histograms and cumulative distribution functions (CDF) of several variables
+    '''
+
+
+    from matplotlib.ticker import MultipleLocator
+    import seaborn as sns
+    mpl.style.use('seaborn')
+
+    mpl.rcParams['font.size'] = 20
+    mpl.rcParams['legend.fontsize'] = 20
+    mpl.rcParams['figure.titlesize'] = 20
+
+    mpl.rcParams['ytick.labelsize']= 20
+    mpl.rcParams['xtick.labelsize']= 20
+    mpl.rcParams['axes.titlesize']=20
+    mpl.rcParams['axes.labelsize']=20
+
+    mpl.rcParams['legend.fancybox'] = True
+    mpl.rcParams['legend.framealpha'] = 0.7
+    mpl.rcParams['legend.facecolor']='silver'
+    mpl.rcParams['legend.frameon']=True
+
+    mpl.rcParams['lines.linewidth']=3
+
+    keys    = ["FZtop","ZeXt","RRfromZR"]
+    xlabels = ["F$_{Z,top}$ [mm$^{-6}$ m$^{-3}$ m s$^{-1}$]","Ze_${X,top}$ [dBz]","RR [mm h$^{-1}$]"]
+    for key,xlabel in zip(keys,xlabels):
+        if key=="FZtop":
+            xlogscale=True
+            ylogscale=True
+            xlims=[0,500]
+            results_now = results
+        elif key=="ZeXt":
+            xlogscale=False
+            ylogscale=False
+            xlims=[-40,45]
+            results_now = results
+        elif key=="RRfromZR":
+            xlogscale=False
+            ylogscale=False
+            xlims=[0,5]
+            results_now = results
+            results_now = results_now.where((results_now["MDVxT"] * Bd(results_now["ZeXt"]))  > 100)
+            results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXt"])/0.23)  > 100)
+        for histOrCDF in ["hist"]: #,"CDF"]:
+           
+            if histOrCDF=="hist": 
+                logscale=False
+            elif histOrCDF=="CDF": 
+                logscale=True
+
+            fig,ax = plt.subplots()
+            ax = sns.histplot(results_now[key],log_scale=logscale,stat="probability")
+            axtwinx = ax.twinx()
+            axtwinx = sns.ecdfplot(results_now[key],log_scale=logscale,color="k")
+            print("median",np.nanmedian(results_now[key]),"90thpercentile",np.nanpercentile(results_now[key],90))
+
+            if ylogscale:
+                ax.set_yscale("log")
+
+            ax.set_xlim(xlims)
+
+            ax.set_xlabel(xlabel)
+
+            plt.tight_layout()
+            #save figure
+            savestr = 'plots/hists/' + histOrCDF + key
+            plt.savefig(savestr + '.png')
+            plt.savefig(savestr + '.pdf')
+            print("pdf is at: ",savestr + '.pdf')
+            plt.clf()
+
 if __name__ == '__main__':
 
     parser =  argparse.ArgumentParser(description='plot melting statistics')
@@ -1764,20 +1839,11 @@ if __name__ == '__main__':
     #######################################
 
     #filter small fluxes
-    for filterZefluxLow2,filterZefluxHigh2 in zip([0,1,2,5,10,20],[100,100,100,100,100,100]):
-        #filterZefluxLow2 = 0
-        #filterZefluxHigh2 = 100
-        save_spec = get_save_string(onlydate)
-        #plot with different filters
-        ProfilesLowHigFluxes(resultsAll,save_spec+ "filterflux" + str(filterZeflux) +  "lowFluxes" + str(filterZefluxLow2) + "_" + str(filterZefluxHigh2),av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,filterZefluxLow=filterZeflux,filterZefluxLow2=filterZefluxLow2,filterZefluxHig2=filterZefluxHigh2)
+    #for filterZefluxLow2,filterZefluxHigh2 in zip([0,1,2,5,10,20],[100,100,100,100,100,100]):
+    #    #filterZefluxLow2 = 0
+    #    #filterZefluxHigh2 = 100
+    #    save_spec = get_save_string(onlydate)
+    #    #plot with different filters
+    #    ProfilesLowHigFluxes(resultsAll,save_spec+ "filterflux" + str(filterZeflux) +  "lowFluxes" + str(filterZefluxLow2) + "_" + str(filterZefluxHigh2),av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,filterZefluxLow=filterZeflux,filterZefluxLow2=filterZefluxLow2,filterZefluxHig2=filterZefluxHigh2)
 
-    ######################################
-    #filter RH additionally
-    #RHbt = 95 #RH bigger than
-    #results = resultsAll
-    #results = results.where((results["RHb"]>RHbt)) #filter also cases where Ze<0 and MDV<0
-    #save_spec = get_save_string(onlydate,filterZeflux=filterZeflux,RHbt=RHbt)
-    #plots with RH filtered
-    #Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
-    ######################################
-
+    Histograms(resultsAll)
