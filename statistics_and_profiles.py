@@ -999,7 +999,7 @@ def ProfilesLowHigFluxes(resultsAll,save_spec,av_min="0",col=1,onlydate="",no_mi
         if i_fluxrange==0: #filter low fluxes
             results = resultsAll
             results = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZefluxLow)
-            results = results.where((results["MDVxB"] * Bd(results["ZeXt"])/0.23)  >filterZefluxLow)
+            results = results.where((results["MDVxB"] * Bd(results["ZeXb"])/0.23)  >filterZefluxLow)
             #get variables for categorization
             vars_dict    = get_vars(["DWRxkT","MDVxT"],results)
             MDVxT = vars_dict["MDVxT"]
@@ -1009,9 +1009,9 @@ def ProfilesLowHigFluxes(resultsAll,save_spec,av_min="0",col=1,onlydate="",no_mi
         elif i_fluxrange==1: #filter in range of fluxes
             results = resultsAll
             results = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZefluxLow2)
-            results = results.where((results["MDVxB"] * Bd(results["ZeXt"])/0.23)  >filterZefluxLow2)
+            results = results.where((results["MDVxB"] * Bd(results["ZeXb"])/0.23)  >filterZefluxLow2)
             results = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  <filterZefluxHigh2)
-            results = results.where((results["MDVxB"] * Bd(results["ZeXt"])/0.23)  <filterZefluxHigh2)
+            results = results.where((results["MDVxB"] * Bd(results["ZeXb"])/0.23)  <filterZefluxHigh2)
             #get variables for categorization
             vars_dict    = get_vars(["DWRxkT","MDVxT"],results)
             MDVxT = vars_dict["MDVxT"]
@@ -1740,49 +1740,46 @@ def Histograms(results):
     xlabels = ["F$_{Z,top}$ [mm$^{-6}$ m$^{-3}$ m s$^{-1}$]","Ze_${X,top}$ [dBz]","RR [mm h$^{-1}$]"]
     for key,xlabel in zip(keys,xlabels):
         if key=="FZtop":
-            xlogscale=True
-            ylogscale=True
-            xlims=[0,500]
+            xlogscale=False #logscale somehow doesnt work
+            ylogscale=False
+            xlims=[0,500]; Nbins = 26
             results_now = results
+            results_now = results_now.where((results_now["MDVxT"] * Bd(results_now["ZeXt"]))  > 0.01)
+            results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXt"])/0.23)  > 0.01)
         elif key=="ZeXt":
             xlogscale=False
             ylogscale=False
-            xlims=[-40,45]
+            xlims=[-40,45]; Nbins = 17
             results_now = results
         elif key=="RRfromZR":
             xlogscale=False
             ylogscale=False
-            xlims=[0,5]
+            xlims=[0,5]; Nbins = 21
             results_now = results
             results_now = results_now.where((results_now["MDVxT"] * Bd(results_now["ZeXt"]))  > 100)
             results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXt"])/0.23)  > 100)
-        for histOrCDF in ["hist"]: #,"CDF"]:
-           
-            if histOrCDF=="hist": 
-                logscale=False
-            elif histOrCDF=="CDF": 
-                logscale=True
 
-            fig,ax = plt.subplots()
-            ax = sns.histplot(results_now[key],log_scale=logscale,stat="probability")
-            axtwinx = ax.twinx()
-            axtwinx = sns.ecdfplot(results_now[key],log_scale=logscale,color="k")
-            print("median",np.nanmedian(results_now[key]),"90thpercentile",np.nanpercentile(results_now[key],90))
+        fig,ax = plt.subplots()
+        ax = sns.histplot(results_now[key],log_scale=xlogscale,stat="probability",bins=np.linspace(xlims[0],xlims[1],Nbins))
+        axtwinx = ax.twinx()
+        axtwinx = sns.ecdfplot(results_now[key],log_scale=[xlogscale,False],color="k")
+        print("median",np.nanmedian(results_now[key]),"90thpercentile",np.nanpercentile(results_now[key],90))
 
-            if ylogscale:
-                ax.set_yscale("log")
+        if ylogscale:
+            ax.set_yscale("log")
+        axtwinx.set_yscale("linear")
 
-            ax.set_xlim(xlims)
+        ax.set_xlim(xlims)
 
-            ax.set_xlabel(xlabel)
+        ax.set_xlabel(xlabel)
 
-            plt.tight_layout()
-            #save figure
-            savestr = 'plots/hists/' + histOrCDF + key
-            plt.savefig(savestr + '.png')
-            plt.savefig(savestr + '.pdf')
-            print("pdf is at: ",savestr + '.pdf')
-            plt.clf()
+        plt.tight_layout()
+        #save figure
+        savestr = 'plots/hists/hist' + key
+        plt.savefig(savestr + '.png')
+        plt.savefig(savestr + '.pdf')
+        print("pdf is at: ",savestr + '.pdf')
+        plt.clf()
 
 if __name__ == '__main__':
 
@@ -1813,19 +1810,6 @@ if __name__ == '__main__':
     if onlydate!="":
         pass #plot_timeseries(results,save_spec) #illustrate averaging by plotting timeseries of one day
 
-    #######################################
-    ##filter very small and large fluxes
-    #filterZefluxLow = 50
-    #filterZefluxHigh = 100
-    #for filterZefluxLow,filterZefluxHigh in zip([0,1,2,5,10,20,50,100,100],[100,100,100,100,100,100,100,500,10000]):
-    #    results_now = resultsAll
-    #    results_now = results_now.where((results_now["MDVxT"] * Bd(results_now["ZeXt"]))  >filterZefluxLow)
-    #    results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXt"])/0.23)  >filterZefluxLow)
-    #    results_now = results_now.where((results_now["MDVxT"] * Bd(results_now["ZeXt"]))  <filterZefluxHigh)
-    #    results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXt"])/0.23)  <filterZefluxHigh)
-    #    #plot with different filters
-    #    Profiles(results_now,save_spec + "lowFluxes" + str(filterZefluxLow) + "_" + str(filterZefluxHigh),av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
-    #######################################
 
     ######################################
     ##filter small fluxes
@@ -1838,12 +1822,14 @@ if __name__ == '__main__':
     ##Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,correct_w_before_categorization=True)
     #######################################
 
-    #filter small fluxes
-    #for filterZefluxLow2,filterZefluxHigh2 in zip([0,1,2,5,10,20],[100,100,100,100,100,100]):
-    #    #filterZefluxLow2 = 0
-    #    #filterZefluxHigh2 = 100
-    #    save_spec = get_save_string(onlydate)
-    #    #plot with different filters
-    #    ProfilesLowHigFluxes(resultsAll,save_spec+ "filterflux" + str(filterZeflux) +  "lowFluxes" + str(filterZefluxLow2) + "_" + str(filterZefluxHigh2),av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,filterZefluxLow=filterZeflux,filterZefluxLow2=filterZefluxLow2,filterZefluxHig2=filterZefluxHigh2)
+    #######################################
+    #filter small fluxes and range of fluxes
+    for filterZefluxLow2,filterZefluxHigh2 in zip([0,1,2,5,10,20],[100,100,100,100,100,100]):
+        #filterZefluxLow2 = 0
+        #filterZefluxHigh2 = 100
+        save_spec = get_save_string(onlydate)
+        #plot with different filters
+        ProfilesLowHigFluxes(resultsAll,save_spec+ "filterflux" + str(filterZeflux) +  "lowFluxes" + str(filterZefluxLow2) + "_" + str(filterZefluxHigh2),av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,filterZefluxLow=filterZeflux,filterZefluxLow2=filterZefluxLow2,filterZefluxHig2=filterZefluxHigh2)
+    ########################################
 
     Histograms(resultsAll)
