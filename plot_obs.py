@@ -22,12 +22,14 @@ parser.add_argument('-st','--starttime', nargs=1,help="format HH:MM",default=["0
 parser.add_argument('-sp','--allSpectra', nargs=1,help="plot all spectra (True:1,False:0)",default=["0"])
 parser.add_argument('-et','--endtime', nargs=1,help="format HH:MM",default=["23:59"])
 parser.add_argument('-ts','--timeseries', nargs=1,help="plot time-height series",default=["0"])
+parser.add_argument('-nmn','--noMieNotch', nargs=1,help="dont plot the mie-notch (takes time)",default=["0"])
 args        = parser.parse_args()
 date        = args.date[0]
 st          = args.starttime[0]
 plot_all_spectra = args.allSpectra[0]=="1"
 plot_timeseries = args.timeseries[0]=="1"
 et          = args.endtime[0]
+noMieNotch  = args.noMieNotch[0]=="1"
 
 dateStartSpec = pd.to_datetime(date+' ' + st); dateEndSpec = pd.to_datetime(date+' ' + et)
 dateStart = pd.to_datetime(date+' ' + st); dateEnd = pd.to_datetime(date+' ' + et)
@@ -112,7 +114,7 @@ else:
     # plot profiles of the observations, but 5 minute mean to get rid of KDP uncertainty
     ############################
     if plot_all_spectra:
-        plotRout.plotProfilesAndSpectraObs(LDR,LV2,LV0,Peaks,Edges,'plots/spectra/',plot_all_times=True)
+        plotRout.plotProfilesAndSpectraObs(LDR,LV2,LV0,Peaks,Edges,'/net/morget/melting_plots/spectra/',plot_all_times=True,noMieNotch=noMieNotch)
     else:
         plotRout.plotProfilesAndSpectraObs(LDR,LV2,LV0,Peaks,Edges,'plots/spectra/')
 
