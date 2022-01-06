@@ -79,6 +79,7 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     #get properties at ML top and bottom
     ZFtop = ZfluxX.sel(range=MLtop,method="nearest").copy()
     ZFbottom = ZfluxX.sel(range=MLbottom,method="nearest").copy()
+        
     ZFR = ((ZFbottom)/(ZFtop)).values*0.23
 
     MDVxTop     = MDVx.sel(range=MLtop,method="nearest")
@@ -192,12 +193,15 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
             ZFR = np.log10(ZFbottom/ZFtop*Kratio)
             ax.plot(ZeX.time,ZFR,c="k",label="ZFR$_{" + label_av,ls=ls,lw=lw)
         ax2.semilogy(ZeX.time,ZFtop,c="orange",label="F$_{Z,top," + label_av,ls=ls,lw=lw)
-        ax2.semilogy(ZeX.time,ZFbottom*Kratio,c="g",label="F$_{Z,bottom," + label_av +  "/0.23",ls=ls,lw=lw)
+        ax2.semilogy(ZeX.time,ZFbottom*Kratio,c="g",label="F$_{Z,bottom," + label_av +  "*0.23",ls=ls,lw=lw)
     ax.set_ylim([-1.0,1.0]) #[0.23-0.23,0.23+0.23])
+
+    FZlow=30
     #mark regions with too low fluxes
     for i in np.arange(len(ptype_flag.values)-1):
-        if ZFtop.values[i]<1e2 or ZFbottom.values[i]<(1e2/0.23):
+        if ZFtop.values[i]<FZlow or (ZFbottom.values[i]*0.23)<(FZlow):
             ax.plot([var.time.values[i],var.time.values[i+1]],[ax.get_ylim()[0],ax.get_ylim()[0]],c="k",lw=15)
+
     ax.axhline(0.0,c="magenta")
     ax.legend(loc="upper left",ncol=1,bbox_to_anchor=(0.00, 1.27),fontsize=20)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
@@ -277,7 +281,30 @@ def categorize_part_type_timeseries(MDVxT,DWRxkT):
 
     return ptype_flag
     
-def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_all_times=False,Kratio=0.23):
+def categorize_part_type(MDVxT,DWRxkT):
+    '''
+    simply returns one of the three classes (rim: rimed; trans: transitional; unr: unrimed)
+    '''
+
+    ####classify according to MDV and DWR
+    DWR_MDV_PRb1_dict = dict()
+    DWR_MDV_PRb1_dict["unrimed-transitional"] = [0.6,7.3] #fit to rime fraction [0,0.2] and 1mm/h<RR<4mm/h # separates unrimed from transitional
+    DWR_MDV_PRb1_dict["transitional-rimed"]   = [0.75,2.58] #fit to rime fraction [0,0.2] and 1mm/h<RR<4mm/h # separates transitional from rimed
+    for key in ["unrimed","transitional","rimed"]:
+        if key=="unrimed":
+            key_thres = "unrimed-transitional" 
+            if DWRxkT>DWR_MDV_PRb1_dict[key_thres][0]*MDVxT**DWR_MDV_PRb1_dict[key_thres][1]:
+                return "unr" #if above is true than return "unr"
+        elif key=="transitional":
+            if (DWRxkT < DWR_MDV_PRb1_dict["unrimed-transitional"][0]*MDVxT**DWR_MDV_PRb1_dict["unrimed-transitional"][1]) & (DWRxkT>DWR_MDV_PRb1_dict["transitional-rimed"][0]*MDVxT**DWR_MDV_PRb1_dict["transitional-rimed"][1]):
+                return "trans"
+        elif key=="rimed":
+            key_thres = "transitional-rimed" 
+            if DWRxkT < DWR_MDV_PRb1_dict[key_thres][0]*MDVxT**DWR_MDV_PRb1_dict[key_thres][1]:
+                return "rim"
+    return "cat_failed"
+
+def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_all_times=False,Kratio=0.23,noMieNotch=False):
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     import postProcessSpectra as post
     
@@ -320,6 +347,12 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
         presMLbot = pres.sel(range=MLbottom_t).values
         ZFtop = ZfluxX.sel(range=MLtop_t)
         ZFbottom = ZfluxX.sel(range=MLbottom_t)
+        ZFlow = 30
+        flagSmallZF = False
+        if ZFtop<ZFlow:
+            flagSmallZF = True
+        if (ZFbottom*0.23)<ZFlow:
+            flagSmallZF = True
         #if ZFtop<0 or ZFbottom<0 or ZeX.sel(range=MLtop_t)<0: #skip plot if ZF is small
         #    continue
         ZFR = np.log10((ZFbottom/ZFtop).values*Kratio)
@@ -381,6 +414,9 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
             #RH (water)
             RHb = RH.sel(range=MLbottom_t).values
             RHb_str = "RH=" + "{0:.1f}".format(RHb)+ "%"
+            #get category
+            cat_str = categorize_part_type(MDVxTop,DWRxkT)
+            print("MDV",MDVxTop,"DWR",DWRxkT,cat_str)
             #Peaks
             Peak_MLtop = Peaksselt.sel(range=(MLtop_t),method="nearest").copy()
             v_Peak1 = Peak_MLtop.sel(peakIndex=1).drop("peakIndex").peakVelClass #peak with smaller DV than main peak
@@ -402,7 +438,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
             mie_notch_DV = []
             specW_now = specW.copy() #need to change conventions here back again
             specW_now["dopplerW"] = -specW_now["dopplerW"] #change conventions
-            if True: #True: #deactivat mie-notch plotting (takes a lot of time)
+            if not noMieNotch: #True: #deactivat mie-notch plotting (takes a lot of time)
                 for height in specW.range:
                     if height>(MLbottom_t+10):
                         continue
@@ -515,7 +551,8 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                                                               [specW.range,specKa.range,specX.range,LDRspecKa.range,specDWRkw.range,specDWRxk.range], #yvar
                                                               [specW,specKa,specX,LDRspecKa], #,specDWRkw,specDWRxk], #var
                                                               ['z$_{W}$ [dBz m$^{-1}$ s]','z$_{Ka}$ [dBz m$^{-1}$ s]','z$_{X}$ [dBz m$^{-1}$ s]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
-                                                              [[-1,11],[-1,11],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
+                                                              #[[-1,11],[-1,11],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
+                                                              [[-1,11],[-1,3],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
                                                               [[-45,10],[-45,10],[-45,10],[-30,-5],[-5,20],[-5,20]], #,[-5,20]],# ,[-0.5,3]], #lims (colorbar)
                                                               #[axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
                                                               [axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
@@ -598,11 +635,16 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
 
         plt.subplots_adjust(left=0.07, bottom=0.07, right=0.95, top=0.93, wspace=0.2, hspace=0.2)
         #plt.tight_layout()
-        if plot_all_times:  
-            plt.savefig(outPath+ "t_all" + ti_spectra +'_spectra' + w_detected_str + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
+        if flagSmallZF:
+           fluxFlag = "FluxLow"
         else:
-            plt.savefig(outPath+ ti +'_spectra' + w_detected_str + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
-            plt.savefig(outPath+ ti +'_spectra' + w_detected_str + '.pdf', facecolor=fig.get_facecolor(), edgecolor='none')
-            print('saved to: ' + outPath+ ti +'_spectra' + w_detected_str + '.png')
+           fluxFlag = "FluxHigh"
+        if plot_all_times:  
+            plt.savefig(outPath+ "t_all" + ti_spectra +'_spectra' + fluxFlag + w_detected_str + cat_str + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
+        else:
+            plt.savefig(outPath+ ti +'_spectra' + w_detected_str + cat_str + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
+            plt.savefig(outPath+ ti +'_spectra' + w_detected_str + cat_str + '.pdf', facecolor=fig.get_facecolor(), edgecolor='none')
+         
+        print('saved to: ' + outPath + "t_all" + ti_spectra +'_spectra' + fluxFlag + w_detected_str + cat_str + '.png')
         plt.close()
         print(ti,' finished')     
