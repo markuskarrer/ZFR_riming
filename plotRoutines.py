@@ -382,6 +382,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
         dataDWR = post.addOffsets(data_interp,dataLV2selt)
         specDWRxk = dataDWR.DWR_X_Ka
         specDWRkw = dataDWR.DWR_Ka_W
+
         #change conventions of DV
         specKa["dopplerKa"] = -specKa["dopplerKa"] #change conventions
         specW["dopplerW"] = -specW["dopplerW"] #change conventions
@@ -550,9 +551,9 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                                                               #[specKa.dopplerKa,specKaV.dopplerKa,specKaHstrongnoisecorr.dopplerKa,LDRspecW.dopplerW,LDRspecKa.dopplerKa,LDRspecKaNoiseCorr.dopplerKa], #xvar 
                                                               [specW.range,specKa.range,specX.range,LDRspecKa.range,specDWRkw.range,specDWRxk.range], #yvar
                                                               [specW,specKa,specX,LDRspecKa], #,specDWRkw,specDWRxk], #var
-                                                              ['z$_{W}$ [dBz m$^{-1}$ s]','z$_{Ka}$ [dBz m$^{-1}$ s]','z$_{X}$ [dBz m$^{-1}$ s]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
+                                                              ['z$_{W}$ [dB]','z$_{Ka}$ [dB]','z$_{X}$ [dB]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
                                                               #[[-1,11],[-1,11],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
-                                                              [[-1,11],[-1,3],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
+                                                              [[-1,11],[-1,11],[-1,11],[-1,11],[-1,9],[-1,9]],  #xlims
                                                               [[-45,10],[-45,10],[-45,10],[-30,-5],[-5,20],[-5,20]], #,[-5,20]],# ,[-0.5,3]], #lims (colorbar)
                                                               #[axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
                                                               [axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
@@ -639,12 +640,15 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
            fluxFlag = "FluxLow"
         else:
            fluxFlag = "FluxHigh"
+        
         if plot_all_times:  
-            plt.savefig(outPath+ "t_all" + ti_spectra +'_spectra' + fluxFlag + w_detected_str + cat_str + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
+            filename = "/net/morget/melting_plots/spectra/t_all" + ti_spectra +'_spectra' + fluxFlag + w_detected_str + cat_str
+            plt.savefig(filename + ".png", facecolor=fig.get_facecolor(), edgecolor='none')
         else:
-            plt.savefig(outPath+ ti +'_spectra' + w_detected_str + cat_str + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
-            plt.savefig(outPath+ ti +'_spectra' + w_detected_str + cat_str + '.pdf', facecolor=fig.get_facecolor(), edgecolor='none')
+            filename = outPath+ ti +'_spectra' + w_detected_str + cat_str
+            plt.savefig(filename + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
+            plt.savefig(filename + '.pdf', facecolor=fig.get_facecolor(), edgecolor='none')
          
-        print('saved to: ' + outPath + "t_all" + ti_spectra +'_spectra' + fluxFlag + w_detected_str + cat_str + '.png')
+        print('saved to: ' + filename)
         plt.close()
         print(ti,' finished')     
