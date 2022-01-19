@@ -625,8 +625,6 @@ def processOneDayProfiles(fileName,fileNameEdge,fileNamePeaks,fileNameLV0, maskR
             tmpData["w_estT"] = tmpData["peak1"].copy(data=np.ones_like(tmpData["peak1"])*np.nan) #initialize empty dataframe
             tmpData["w_estT"].values = np.nanmin([[-peak1_cleanedIceNoise,-peak2_cleanedNoise]],axis=1)[0]
             tmpData["w_estT"].loc[dict(range=slice(h_rel_lims[0],0.9))] = np.nan*np.ones_like(tmpData["w_estT"].loc[dict(range=slice(h_rel_lims[0],0.9))]) #remove data within ML
-            
-
         
         if not no_mie_notch: #possibility to deactivate this slow calculation of the mie-notch
             ##w-estimate (ML bottom from Mie-notch)
@@ -743,24 +741,24 @@ def get_vars(vars_out,res):
     all_dic["DWRkwT"]              = vars( "DWRkwT"         ,"DWR$_{Ka-W,top}$ [dB]"            ,[-1.5,10]            )
     all_dic["ZeX"]                 = vars( "ZeXt"           ,"Ze$_{X,top}$ [dB]"                ,[0,35]               )
     all_dic["ZeXb"]                = vars( "ZeXb"           ,"Ze$_{X,bottom}$ [dB]"             ,[0,35]               )
-    all_dic["MDVxT"]               = vars( "MDVxT_denscorr" ,"MDV$_{X,top}$ [m/s]"              ,[0.6,2.5]            )
-    all_dic["MDVxT2"]              = vars( "MDVxT_denscorr" ,"MDV$_{X,top}$ [m/s]"              ,[0.6,2.5]            )#Quick and dirty fix to use variable two time
-    all_dic["MDVxB"]               = vars( "MDVxB_denscorr" ,"MDV$_{X,bottom}$ [m/s]"           ,[3.0,8.0]            )
-    all_dic["MDVvCorrT"]           = vars( "MDVvCorrT"      ,"MDV$_{X,v-corr,top}$ [m/s]"       ,[0.6,2.5]            )
-    all_dic["MDVvCorrT_denscorr"]  = vars( "MDVvCorrT_denscorr","MDV$_{X,v-corr,top}$ [m/s]"       ,[0.6,2.5]            )
-    all_dic["MDVvCorrT2"]          = vars( "MDVvCorrT"      ,"MDV$_{X,v-corr,top}$ [m/s]"       ,[0.6,2.5]            )#Quick and dirty fix to use variable two time
-    all_dic["MDVvCorrT_denscorr2"] = vars( "MDVvCorrT_denscorr","MDV$_{X,v-corr,top}$ [m/s]"       ,[0.6,2.5]            )
-    all_dic["MDVvCorrT_denscorr3"] = vars( "MDVvCorrT_denscorr","MDV$_{X,v-corr,top}$ [m/s]"       ,[0.6,2.5]            )
-    all_dic["MDVvCorrB"]           = vars( "MDVvCorrB"      ,"MDV$_{X,v-corr,bottom}$ [m/s]"    ,[2.0,8.0]            )
-    all_dic["MDVvCorrB_denscorr"]  = vars( "MDVvCorrB_denscorr"      ,"MDV$_{X,v-corr,bottom}$ [m/s]"    ,[2.0,9.0]            )
-    all_dic["DV_edge_lowT"]        = vars( "DVedgeLT"       ,"DV$_{edge,low,top}$ [m/s]"        ,[-1.5,1.5]           )
-    all_dic["DV_edge_highT"]       = vars( "DVedgeHT"       ,"DV$_{edge,high,top}$ [m/s]"       ,[1.0,6.0]            )
-    all_dic["DV_edge_highB"]       = vars( "DVedgeHB"       ,"DV$_{edge,high,bottom}$ [m/s]"    ,[4.0,8.0]            )
-    all_dic["w_estT"]              = vars( "w_estT"         ,"w$_{est.,top}$ [m/s]"             ,[-1.0,0.5]           ) #estimate of the wind velocity
-    all_dic["w_estB"]              = vars( "w_estB"         ,"w$_{est.,bottom}$ [m/s]"          ,[-1.0,1.0]           ) #estimate of the wind velocity
+    all_dic["MDVxT"]               = vars( "MDVxT_denscorr" ,"MDV$_{X,top}$ [m s$^{-1}$]"              ,[0.6,2.5]            )
+    all_dic["MDVxT2"]              = vars( "MDVxT_denscorr" ,"MDV$_{X,top}$ [m s$^{-1}$]"              ,[0.6,2.5]            )#Quick and dirty fix to use variable two time
+    all_dic["MDVxB"]               = vars( "MDVxB_denscorr" ,"MDV$_{X,bottom}$ [m s$^{-1}$]"           ,[3.0,8.0]            )
+    all_dic["MDVvCorrT"]           = vars( "MDVvCorrT"      ,"MDV$_{X,v-corr,top}$ [m s$^{-1}$]"       ,[0.6,2.5]            )
+    all_dic["MDVvCorrT_denscorr"]  = vars( "MDVvCorrT_denscorr","MDV$_{X,v-corr,top}$ [m s$^{-1}$]"       ,[0.6,2.5]            )
+    all_dic["MDVvCorrT2"]          = vars( "MDVvCorrT"      ,"MDV$_{X,v-corr,top}$ [m s$^{-1}$]"       ,[0.6,2.5]            )#Quick and dirty fix to use variable two time
+    all_dic["MDVvCorrT_denscorr2"] = vars( "MDVvCorrT_denscorr","MDV$_{X,v-corr,top}$ [m s$^{-1}$]"       ,[0.6,2.5]            )
+    all_dic["MDVvCorrT_denscorr3"] = vars( "MDVvCorrT_denscorr","MDV$_{X,v-corr,top}$ [m s$^{-1}$]"       ,[0.6,2.5]            )
+    all_dic["MDVvCorrB"]           = vars( "MDVvCorrB"      ,"MDV$_{X,v-corr,bottom}$ [m s$^{-1}$]"    ,[2.0,8.0]            )
+    all_dic["MDVvCorrB_denscorr"]  = vars( "MDVvCorrB_denscorr"      ,"MDV$_{X,v-corr,bottom}$ [m s$^{-1}$]"    ,[2.0,9.0]            )
+    all_dic["DV_edge_lowT"]        = vars( "DVedgeLT"       ,"DV$_{edge,low,top}$ [m s$^{-1}$]"        ,[-1.5,1.5]           )
+    all_dic["DV_edge_highT"]       = vars( "DVedgeHT"       ,"DV$_{edge,high,top}$ [m s$^{-1}$]"       ,[1.0,6.0]            )
+    all_dic["DV_edge_highB"]       = vars( "DVedgeHB"       ,"DV$_{edge,high,bottom}$ [m s$^{-1}$]"    ,[4.0,8.0]            )
+    all_dic["w_estT"]              = vars( "w_estT"         ,"w$_{est.,top}$ [m s$^{-1}$]"             ,[-1.0,0.5]           ) #estimate of the wind velocity
+    all_dic["w_estB"]              = vars( "w_estB"         ,"w$_{est.,bottom}$ [m s$^{-1}$]"          ,[-1.0,1.0]           ) #estimate of the wind velocity
     all_dic["peak1powT"]           = vars( "peak1powT"      ,"Ze$_{peak1,top}$ [dBz]"           ,[-60,0]              )
     all_dic["peak2powT"]           = vars( "peak2powT"      ,"Ze$_{peak2,top}$ [dBz]"           ,[-60,0]              )
-    all_dic["widthKaT"]            = vars( "WkaT"           ,"SW$_{Ka}$ [m/s]"                  ,[0.1,1.0]            )
+    all_dic["widthKaT"]            = vars( "WkaT"           ,"SW$_{Ka}$ [m s$^{-1}$]"                  ,[0.1,1.0]            )
     all_dic["delz"]                = vars( "ML_thickness"   ,"$\Delta z_{melt}$ [m]"            ,[100.,600.]          )
     all_dic["rhT"]                 = vars( "RHt"            ,"RH$_{top}$ [%]"                   , [50,105]            )
     all_dic["rhB"]                 = vars( "RHb"            ,"RH$_{bottom}$ [%]"                , [70,105]            )
@@ -800,16 +798,16 @@ def get_vars_profiles(vars_out,res):
     all_dic = dict()
     all_dic["LDR"]                 = vars( "LDR"            ,'LDR$_{Ka}$ [dB]'                  ,[-35,-5])
     all_dic["ZeX"]                 = vars( "ZeX"            ,"Ze$_{X}$ [dB]"                ,[10,35]               )
-    all_dic["MDVx"]                = vars( "MDVx"           ,"MDV$_{X}$ [m/s]"              ,[1.0,7]            )
-    all_dic["Fz"]                  = vars( "Fz"             ,"F$_{Z,X}$ [mm$^6$/m$^3$ m/s]"              ,[0,1e15]            )
+    all_dic["MDVx"]                = vars( "MDVx"           ,"MDV$_{X}$ [m s$^{-1}$]"              ,[1.0,7]            )
+    all_dic["Fz"]                  = vars( "Fz"             ,"F$_{Z,X}$ [mm$^6$/m$^3$ m s$^{-1}$]"              ,[0,1e15]            )
     all_dic["DWRxk"]               = vars( "DWRxk"          ,"DWR$_{X,Ka}$ [dB]"             ,[-1.5,15]            )
     all_dic["DWRkw"]               = vars( "DWRkw"          ,"DWR$_{Ka,W}$ [dB]"             ,[-1.5,15]            )
     all_dic["FzNorm"]              = vars( "FzNorm"         ,"F$_{Z,X}$/F$_{Z,X,top}$"              ,[0.5,6]            )
     all_dic["FzGrad"]              = vars( "FzGrad"         ,"dF$_{Z,X,norm}$/d(-h)"              ,[-2,15]            )
-    all_dic["DV_edge_low"]         = vars( "DVedgeL"        ,"SEV [m/s]"                       ,[-0.5,9]           )
-    all_dic["DV_edge_high"]        = vars( "DVedgeH"        ,"DV$_{edges}$ [m/s]"       ,[-0.5,9]            )
-    all_dic["w_estT"]              = vars( "w_estT"         ,"w$_{est.}$ [m/s]"             ,[-1.0,1.0]           ) #estimate of the wind velocity
-    all_dic["w_estB"]              = vars( "w_estB"         ,"w$_{est.}$ [m/s]"          ,[-1.0,1.0]           ) #estimate of the wind velocity
+    all_dic["DV_edge_low"]         = vars( "DVedgeL"        ,"SEV [m s$^{-1}$]"                       ,[-0.5,9]           )
+    all_dic["DV_edge_high"]        = vars( "DVedgeH"        ,"DV$_{edges}$ [m s$^{-1}$]"       ,[-0.5,9]            )
+    all_dic["w_estT"]              = vars( "w_estT"         ,"w$_{est.}$ [m s$^{-1}$]"             ,[-1.0,1.0]           ) #estimate of the wind velocity
+    all_dic["w_estB"]              = vars( "w_estB"         ,"w$_{est.}$ [m s$^{-1}$]"          ,[-1.0,1.0]           ) #estimate of the wind velocity
 
     dic = dict()
     for key in vars_out:
@@ -894,6 +892,8 @@ def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
             ax.fill_betweenx(varColl["F0" + ptype +key].range,varColl["F0"+ ptype + key].quantile(0.25,dim="time"),varColl["F0"+ ptype + key].quantile(0.75,dim="time"),label="__None",color=colors[i_ptype],lw=1,ls="-",alpha=0.1)
             if key=="Fz":
                 ax.set_xscale("log")
+            #med_quant.isel(range=med_quant.argmax()) #get maximum
+            #med_quant.sel(range=..,method="nearest") #get value at hrel=...
         
         #legend limits etc.
         if i_var==0:
@@ -938,6 +938,8 @@ def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
                 if i_ptype==0:
                     ax2.plot(np.nan,np.nan,ls="--",c="k",label="$f_{melt}$")
                     ax2.legend()
+                #set_trace()
+                #med_quant.range.values[np.nanargmin(np.abs(fmelt-0.5))] #get hrel[fmelt=0.5]
                 
             
             #c=["blue","green","red"][i_ptype]
@@ -945,7 +947,7 @@ def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
     #fig.delaxes(axes[1][3])
     #plt.tight_layout() #rect=(0,0.00,1,1))
     plt.subplots_adjust(left=0.1,
-                    bottom=0.03, 
+                    bottom=0.04, 
                     right=0.95, 
                     top=0.98, 
                     wspace=0.1, 
@@ -1134,16 +1136,22 @@ def ProfilesLowHigFluxes(resultsAll,save_spec,av_min="0",col=1,onlydate="",no_mi
             print("pdf is at: ",savestr + '.pdf')
             plt.clf()
 
-def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZeflux=50):
+def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZeflux=30,addWsubsetWithoutCorr=False):
     '''
     plot boxplots after different filtering (Zeflux,RH) and corrections (vertical wind estimate)
     showfliers: show outliers of boxplot
     ONLYbci: show only panels b) c) and i) (for presentation)
     day: None: all days; otherways date in YYYYMMDD
     filterZeflux: filter of reflectivity flux applied to several boxplot panels
+    addWsubsetWithoutCorr: add one row of plots with subset of data where w-correction is possible but not applied. 
+        This is done to test whether the subset is specific or whether the correction is making the difference.
     '''
     import seaborn as sns
     from matplotlib.ticker import MultipleLocator
+    from statsmodels.stats.weightstats import ztest
+    from scipy.stats import ttest_1samp,skew,kurtosis,wilcoxon
+    from sklearn import preprocessing
+
     mpl.style.use('seaborn')
 
     mpl.rcParams['font.size'] = 20
@@ -1169,6 +1177,8 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
             letters=["d)","e)","f)"] 
         elif row==2:
             letters=["g)","h)","i)"] 
+        elif row==3:
+            letters=["j)","k)","l)"] 
 
         #make labels
         ax.text(0.0,0.9, letters[0],fontsize=42,horizontalalignment='left',verticalalignment='top',transform = ax.transAxes)
@@ -1176,7 +1186,10 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         ax.text(0.67,0.9, letters[2],fontsize=42,horizontalalignment='left',verticalalignment='top',transform = ax.transAxes)
 
     if not ONLYbci:
-        fig,axes = plt.subplots(ncols=1,nrows=3,figsize=(12,20))
+        if addWsubsetWithoutCorr:
+            fig,axes = plt.subplots(ncols=1,nrows=4,figsize=(12,26))
+        else:
+            fig,axes = plt.subplots(ncols=1,nrows=3,figsize=(12,20))
     else: ###part for presentation (simplified plot)
         fig,axes = plt.subplots(ncols=1,nrows=1,figsize=(12,7))
         ZFR_coll   = dict() #collection of all ZFRs
@@ -1187,12 +1200,10 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
                 #filter small fluxes
                 results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
                 results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])*0.23)  >filterZeflux)
-                #results_now = results_now.where((results_now["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
             elif i_filter==1:
                 #filter small fluxes
                 results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
                 results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])*0.23)  >filterZeflux)
-                #results_now = results_now.where((results_now["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
                 results_now = results_now.where((results_now["RHb"]>95.)) #filter also cases with low RH
 
             #2D loop to generate plot_matrix
@@ -1231,9 +1242,10 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         mdf = pd.melt(df, id_vars=['Filter'], var_name=['Particle Type'])      # MELT
         mdf.rename(columns={'value':'ZFR'}, inplace=True)
 
+
         ####plot
         ax = sns.boxplot(x="Filter", y="ZFR", hue="Particle Type", data=mdf,
-            #showmeans=True,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
+            #showmeans=False,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
             showfliers = showfliers, flierprops={"marker":'o', "markersize":2,"alpha":0.01},
             ax=axes) 
         ax.axhline(0.0,c="magenta",lw=2)
@@ -1255,17 +1267,13 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         if i_filter==0:
             results_now = results #no filter
         elif i_filter==1:
-            #filterZeflux  = 100
             #filter small fluxes
             results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
             results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])*0.23)  >filterZeflux)
-            #results_now = results_now.where((results_now["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
         elif i_filter==2:
-            #filterZeflux  = 100
             #filter small fluxes
             results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
             results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])*0.23)  >filterZeflux)
-            #results_now = results_now.where((results_now["ZeXt"]>0)) #filter also cases where Ze<0 and MDV<0
             results_now = results_now.where((results_now["RHb"]>95.)) #filter also cases with low RH
 
         #2D loop to generate plot_matrix
@@ -1290,14 +1298,27 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
             df = df_now.copy()
         else:
             df = pd.concat([df,df_now]) #, df2, df3])                                # CONCATENATE
+        for key in ["unrimed","transitional","rimed"]:
+            true_value = 0.0 #for the z-test we assume ZFR=0.0 (melting-only) as the null-hypothesis
+  
+            #set_trace() 
+            normed_data = preprocessing.normalize([df[key].dropna()])[0]
+            if i_filter==1 and key=="unrimed":
+                pass
+                #set_trace()
+            dfNow = df[key].dropna()
+            #print("Filter:",i_filter,key,"z-test, p-value",ztest(df[key].dropna(), value=true_value))
+            #print("Filter:",i_filter,key,"t-test, p-value",ttest_1samp(dfNow, popmean=true_value),"skew",skew(dfNow),"kurto",kurtosis(dfNow,fisher=False))
+            #print("Filter:",i_filter,key,"W-test, p-value",wilcoxon(dfNow))
+
     mdf = pd.melt(df, id_vars=['Filter'], var_name=['Particle Type'])      # MELT
     mdf.rename(columns={'value':'ZFR'}, inplace=True)
 
     ####plot
     ax = sns.boxplot(x="Filter", y="ZFR", hue="Particle Type", data=mdf,
-        #showmeans=True,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
+        #showmeans=False,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
         showfliers = showfliers, flierprops={"marker":'o', "markersize":2,"alpha":0.01},
-        ax=axes[0]) 
+        ax=axes[0],showmeans=False) 
 
     if not ONLYbci:
         add_letters(ax,row=0)
@@ -1325,6 +1346,7 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
             av_min="2"
         elif i_average==2:
             av_min="5"
+
         #filter small fluxes
         results_now = results.where(     (results["MDVxT"]    * Bd(results["ZeXt"])     )     > filterZeflux).copy()
         results_now = results_now.where(     (results_now["MDVxB"]    * Bd(results_now["ZeXb"])*0.23)     > filterZeflux).copy()
@@ -1361,9 +1383,9 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
 
     ####plot
     ax = sns.boxplot(x="Average", y="ZFR", hue="Particle Type", data=mdf,
-        #showmeans=True,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
+        #showmeans=False,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
         showfliers = showfliers, flierprops={"marker":'o', "markersize":2,"alpha":0.01},
-        ax=axes[1])  # RUN PLOT   
+        ax=axes[1],showmeans=False)  # RUN PLOT   
     ax.legend([],[], frameon=False) #remove legend because it is already in first subplot
     ax.axhline(0.0,c="magenta",lw=2)
     #limits and labels
@@ -1373,18 +1395,17 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         add_letters(ax,row=1)
 
     ####################################
-    #third plot: different corrections#
+    #third plot: different wind corrections#
     ####################################
     #filter small fluxes
     #filterZeflux  = 100
     results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
     results_now = results_now.where((results["MDVxB"] * Bd(results["ZeXb"])*0.23)  >filterZeflux)
-    results_now = results_now.where((results["ZeXt"]>0)) #correction also cases where Ze<0 and MDV<0
     #filter low RH
     #results_now = results_now.where((results["RHb"]>95.)) #filter also cases with low RH
 
     #load variables
-    vars_dict    = get_vars(["ZFR"  ,"ZFRvCorrT","ZFRvCorrB","ZFRvCorr","MDVxT","MDVvCorrT_denscorr","DWRxkT"],results_now)
+    vars_dict    = get_vars(["ZFR"  ,"ZFRvCorrT","ZFRvCorrB","ZFRvCorr","MDVxT","MDVvCorrT_denscorr","MDVvCorrB_denscorr","DWRxkT"],results_now)
 
     correctionNumbers = [0,1,2]
     correctionDescr   = ["F1 + ML Top","F1 + ML Bottom","F1 + ML Top & Bottom"]
@@ -1400,12 +1421,14 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         elif i_correction==2:
             MDVkey = "MDVvCorrT_denscorr"
             ZFRkey = "ZFRvCorr"
+        #MDVkey = "MDVxT" #vCorrT_denscorr"
         DWRxkT = vars_dict["DWRxkT"]
         MDVxT = vars_dict[MDVkey]
         ZFR = vars_dict[ZFRkey]
 
         ZFR_coll = categorize_part_type(ZFR.data,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_correction,"C")
 
+        #print("i_correction",i_correction,ZFRkey,"N(ZFR)",sum(~np.isnan(ZFR.data.values)),"N(ZFRkey)",sum(~np.isnan(vars_dict[ZFRkey].data.values)))
     # DATAFRAMES WITH TRIAL COLUMN ASSIGNED
     for i_correction in correctionNumbers:
         if i_correction==0:
@@ -1425,15 +1448,74 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
 
     ####plot
     ax = sns.boxplot(x="Corrections", y="ZFR", hue="Particle Type", data=mdf,
-        #showmeans=True,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
+        #showmeans=False,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
         showfliers = showfliers, flierprops={"marker":'o', "markersize":5,"alpha":0.01},
-        ax=axes[2])  # RUN PLOT   
+        ax=axes[2],showmeans=False)  # RUN PLOT   
     ax.legend([],[], frameon=False) #remove legend because it is already in first subplot
     ax.axhline(0.0,c="magenta",lw=2)
     if not ONLYbci:
         add_letters(ax,row=2)
 
     ax.set_ylim([-1.0,1.0])
+
+    if addWsubsetWithoutCorr:
+
+        ####################################
+        #fourth plot: subset of data where wind-correction would be possible but is not applied
+        ####################################
+        #filter small fluxes
+        results_now = results.where(    (results["MDVxT"] * Bd(results["ZeXt"]))       >filterZeflux)
+        results_now = results_now.where((results["MDVxB"] * Bd(results["ZeXb"])*0.23)  >filterZeflux)
+
+        #load variables
+        vars_dict    = get_vars(["ZFR"  ,"ZFRvCorrT","ZFRvCorrB","ZFRvCorr","MDVxT","MDVvCorrT_denscorr","MDVvCorrB_denscorr","DWRxkT"],results_now)
+
+        correctionNumbers = [0,1,2]
+        correctionDescr   = ["F1 + ML Top","F1 + ML Bottom","F1 + ML Top & Bottom"]
+
+        ZFR_coll = categorize_part_type(ZFR.data,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_correction,"C")
+        for i_correction in correctionNumbers: #loop over different vertical wind corrections
+            #select corrected MDV and ZFRs
+            if i_correction==0:
+                MDVkey = "MDVvCorrT_denscorr"
+                ZFRkey = "ZFRvCorrT"
+            elif i_correction==1:
+                MDVkey = "MDVxT"
+                ZFRkey = "ZFRvCorrB"
+            elif i_correction==2:
+                MDVkey = "MDVvCorrT_denscorr"
+                ZFRkey = "ZFRvCorr"
+            DWRxkT  = vars_dict["DWRxkT"]
+            MDVxT   = vars_dict[MDVkey]
+            ZFR     = vars_dict["ZFR"].data.copy()
+
+
+            #remove all datapoints where <ZFRkey> is not defined, which means that it cant be corrected for w
+            ZFR.values = np.where(~np.isnan(vars_dict[ZFRkey].data.values),vars_dict["ZFR"].data.values,np.nan)
+            ZFR_coll = categorize_part_type(ZFR,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_correction,"W")
+
+            # DATAFRAMES WITH TRIAL COLUMN ASSIGNED
+            #ZFRkey = "ZFR" #the uncorrected ZFR is taken for all
+            ZFRs_correction = np.transpose(np.stack([ZFR_coll["W" + str(i_correction) + "unrimed" + ZFRkey],ZFR_coll["W" + str(i_correction) + "transitional" + ZFRkey],ZFR_coll["W" + str(i_correction) + "rimed" + ZFRkey]]))
+            df_now = pd.DataFrame(ZFRs_correction, columns=list(["unrimed","transitional","rimed"])).assign(Subset=correctionDescr[i_correction] +  "\nN=" + "{:.1f}".format(ZFR_coll["W" + str(i_correction) + "Hdata"]) + "h" + "\n(" + "{:.1f}".format(ZFR_coll["W" + str(i_correction) + "unrimed" + "_perc"]*100) + "%" + ",{:.1f}".format(ZFR_coll["W" + str(i_correction) + "transitional_perc"]*100)+ "%" + ",{:.1f}".format(ZFR_coll["W" + str(i_correction) + "rimed_perc"]*100)+ "%)")
+            if i_correction==0:
+                df = df_now.copy()
+            else:
+                df = pd.concat([df,df_now]) #, df2, df3])                                # CONCATENATE
+        mdf = pd.melt(df, id_vars=['Subset'], var_name=['Particle Type'])      # MELT
+        mdf.rename(columns={'value':'ZFR'}, inplace=True)
+
+        ####plot
+        ax = sns.boxplot(x="Subset", y="ZFR", hue="Particle Type", data=mdf,
+            #showmeans=False,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
+            showfliers = showfliers, flierprops={"marker":'o', "markersize":5,"alpha":0.01},
+            ax=axes[3],showmeans=False)  # RUN PLOT   
+        ax.legend([],[], frameon=False) #remove legend because it is already in first subplot
+        ax.axhline(0.0,c="magenta",lw=3)
+        if not ONLYbci:
+            add_letters(ax,row=3)
+
+        ax.set_ylim([-1.0,1.0])
 
     for ax in axes.flatten():
         ml = MultipleLocator(0.1)
@@ -1795,8 +1877,11 @@ if __name__ == '__main__':
     filterZeflux  = 30 #the first box in the boxplot will be still unfiltered!
     save_spec = get_save_string(onlydate)
 
+    
     #for filterZeflux in [10,30,100]:
-    #    Boxplot(resultsAll,av_min=av_min,day=onlydate,filterZeflux=filterZeflux)
+    for filterZeflux in [30]:
+        #Boxplot(resultsAll,av_min=av_min,day=onlydate,filterZeflux=filterZeflux)
+        Boxplot(resultsAll,av_min=av_min,day=onlydate,filterZeflux=filterZeflux,addWsubsetWithoutCorr=True)
 
     #shuffle order to make scatter plot more objective (otherways last days are most visible)
     if onlydate!="":
@@ -1806,10 +1891,10 @@ if __name__ == '__main__':
     #filter small fluxes
     results = resultsAll
     results = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
-    results = results.where((results["MDVxB"] * Bd(results["ZeXt"])*0.23)  >filterZeflux)
+    results = results.where((results["MDVxB"] * Bd(results["ZeXb"])*0.23)  >filterZeflux)
     save_spec = get_save_string(onlydate,filterZeflux=filterZeflux)
     #plot with different filters
-    Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
+    #Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
     #Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,correct_w_before_categorization=True)
     ######################################
 
@@ -1822,4 +1907,4 @@ if __name__ == '__main__':
     #    ProfilesLowHigFluxes(resultsAll,save_spec+ "filterflux" + str(filterZeflux) +  "lowFluxes" + str(filterZefluxLow2) + "_" + str(filterZefluxHigh2),av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,filterZefluxLow=filterZeflux,filterZefluxLow2=filterZefluxLow2,filterZefluxHig2=filterZefluxHigh2)
     ########################################
 
-    Histograms(resultsAll)
+    #Histograms(resultsAll)
