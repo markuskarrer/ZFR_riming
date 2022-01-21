@@ -474,6 +474,9 @@ def processOneDay(fileName,fileNameEdge,fileNamePeaks,fileNameLV0, maskR, maskL,
                                   'ML_bottom':heightBottonMaxLDR,
                                   'ML_top':heightTopMaxLDR
                                    })
+        #apply filters
+        for key in tmpData:
+            tmpData[key] = tmpData[key].where(tmpData["ML_thickness"]<700,drop=True).copy()
 
         data.close()
         dataEdge.close()
@@ -909,8 +912,9 @@ def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
         if key=="w_estB":
             ax.arrow(0.05, 0.08, 0.25, 0.0,lw=8)
             ax.arrow(-0.05, 0.08, -0.25, 0.0,lw=8)
-            ax.text(0.05,0.15, "downwind",fontsize=40,horizontalalignment='left',verticalalignment='center')
-            ax.text(-0.05,0.15, "upwind",fontsize=40,horizontalalignment='right',verticalalignment='center')
+            ax.text(0.05,0.15, "downdraft",fontsize=40,horizontalalignment='left',verticalalignment='center')
+            ax.text(-0.05,0.15, "updraft" ,fontsize=40,horizontalalignment='right',verticalalignment='center')
+ 
             ax.set_xlim([-0.8,0.8])
         elif key=="MDVx":
             #add melting fraction according to Mitra
@@ -1081,8 +1085,8 @@ def ProfilesLowHigFluxes(resultsAll,save_spec,av_min="0",col=1,onlydate="",no_mi
             if key=="w_estB":
                 ax.arrow(0.05, 0.08, 0.25, 0.0,lw=8)
                 ax.arrow(-0.05, 0.08, -0.25, 0.0,lw=8)
-                ax.text(0.05,0.15, "downwind",fontsize=40,horizontalalignment='left',verticalalignment='center')
-                ax.text(-0.05,0.15, "upwind",fontsize=40,horizontalalignment='right',verticalalignment='center')
+                ax.text(0.05,0.15, "downdraft",fontsize=40,horizontalalignment='left',verticalalignment='center')
+                ax.text(-0.05,0.15, "updraft",fontsize=40,horizontalalignment='right',verticalalignment='center')
             elif key=="MDVx":
                 #add melting fraction according to Mitra
                 from scipy.optimize import brentq
