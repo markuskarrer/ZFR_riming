@@ -1195,74 +1195,75 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         else:
             fig,axes = plt.subplots(ncols=1,nrows=3,figsize=(12,20))
     else: ###part for presentation (simplified plot)
-        fig,axes = plt.subplots(ncols=1,nrows=1,figsize=(12,7))
-        ZFR_coll   = dict() #collection of all ZFRs
-        filterNumbers = [0,1,2]
-        filterDescr   = ["F1: F$_{Z,X}$>" + str(filterZeflux) + "mm$^6$ m$^{-3}$ m s$^{-1}$","F2: F1 & RH>95%","F1 + w-corr"]
-        for i_filter in filterNumbers:
-            if i_filter in [0,2]:
-                #filter small fluxes
-                results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
-                results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])*0.23)  >filterZeflux)
-            elif i_filter==1:
-                #filter small fluxes
-                results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
-                results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])*0.23)  >filterZeflux)
-                results_now = results_now.where((results_now["RHb"]>95.)) #filter also cases with low RH
+        pass #commented not to be confused every time
+        #fig,axes = plt.subplots(ncols=1,nrows=1,figsize=(12,7))
+        #ZFR_coll   = dict() #collection of all ZFRs
+        #filterNumbers = [0,1,2]
+        #filterDescr   = ["F1: F$_{Z,X}$>" + str(filterZeflux) + "mm$^6$ m$^{-3}$ m s$^{-1}$","F2: F1 & RH>95%","F1 + w-corr"]
+        #for i_filter in filterNumbers:
+        #    if i_filter in [0,2]:
+        #        #filter small fluxes
+        #        results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
+        #        results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])*0.23)  >filterZeflux)
+        #    elif i_filter==1:
+        #        #filter small fluxes
+        #        results_now = results.where((results["MDVxT"] * Bd(results["ZeXt"]))  >filterZeflux)
+        #        results_now = results_now.where((results_now["MDVxB"] * Bd(results_now["ZeXb"])*0.23)  >filterZeflux)
+        #        results_now = results_now.where((results_now["RHb"]>95.)) #filter also cases with low RH
 
-            #2D loop to generate plot_matrix
-            if i_filter in [0,1]:
-                vars_dict    = get_vars(["ZFR"  ,"MDVxT","DWRxkT"],results_now)
-                MDVkey = "MDVxT"
-                ZFRkey = "ZFR"
-            else:
-                vars_dict    = get_vars(["ZFR"  ,"ZFRvCorrT","ZFRvCorrB","ZFRvCorr","MDVxT","MDVvCorrT_denscorr","DWRxkT"],results_now)
-                MDVkey = "MDVvCorrT_denscorr"
-                ZFRkey = "ZFRvCorr"
+        #    #2D loop to generate plot_matrix
+        #    if i_filter in [0,1]:
+        #        vars_dict    = get_vars(["ZFR"  ,"MDVxT","DWRxkT"],results_now)
+        #        MDVkey = "MDVxT"
+        #        ZFRkey = "ZFR"
+        #    else:
+        #        vars_dict    = get_vars(["ZFR"  ,"ZFRvCorrT","ZFRvCorrB","ZFRvCorr","MDVxT","MDVvCorrT_denscorr","DWRxkT"],results_now)
+        #        MDVkey = "MDVvCorrT_denscorr"
+        #        ZFRkey = "ZFRvCorr"
 
-            MDVxT = vars_dict[MDVkey]
-            DWRxkT = vars_dict["DWRxkT"]
-            ZFR = vars_dict[ZFRkey]
+        #    MDVxT = vars_dict[MDVkey]
+        #    DWRxkT = vars_dict["DWRxkT"]
+        #    ZFR = vars_dict[ZFRkey] 
 
-            ZFR_coll = categorize_part_type(ZFR.data,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_filter,"F")
-            
-            #uncomment next lines get other variables for categories
-            key = "delz"
-            var = get_vars([key],results_now)[key]
-            var_coll = categorize_part_type(var.data,MDVxT.data,DWRxkT.data,dict(),key,i_filter,"F")
+        #    ZFR_coll = categorize_part_type(ZFR.data,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_filter,"F")
+        #    
+        #    #uncomment next lines get other variables for categories
+        #    key = "delz"
+        #    var = get_vars([key],results_now)[key]
+        #    var_coll = categorize_part_type(var.data,MDVxT.data,DWRxkT.data,dict(),key,i_filter,"F")
 
-        # DATAFRAMES WITH TRIAL COLUMN ASSIGNED
-        for i_filter in filterNumbers:
-            if i_filter in [0,1]:
-                ZFRkey = "ZFR"
-            else:
-                ZFRkey = "ZFRvCorr"
-            ZFRs_filter = np.transpose(np.stack([ZFR_coll["F" + str(i_filter) + "unrimed" + ZFRkey],ZFR_coll["F" + str(i_filter) + "transitional" + ZFRkey],ZFR_coll["F" + str(i_filter) + "rimed" + ZFRkey]]))
-            df_now = pd.DataFrame(ZFRs_filter, columns=list(["unrimed","transitional","rimed"])).assign(Filter=filterDescr[i_filter] +  "\nN=" + "{:.1f}".format(ZFR_coll["F" + str(i_filter) + "Hdata"]) + "h" + "\n(" + "{:.1f}".format(ZFR_coll["F" + str(i_filter) + "unrimed" + "_perc"]*100)+ "%" + ",{:.1f}".format(ZFR_coll["F" + str(i_filter) + "transitional" + "_perc"]*100)+ "%" + ",{:.1f}".format(ZFR_coll["F" + str(i_filter) + "rimed" + "_perc"]*100)+ "%)")
-            if i_filter==0:
-                df = df_now.copy()
-            else:
-                df = pd.concat([df,df_now]) #, df2, df3])                                # CONCATENATE
-        mdf = pd.melt(df, id_vars=['Filter'], var_name=['Particle Type'])      # MELT
-        mdf.rename(columns={'value':'ZFR'}, inplace=True)
+        ## DATAFRAMES WITH TRIAL COLUMN ASSIGNED
+        #for i_filter in filterNumbers:
+        #    if i_filter in [0,1]:
+        #        ZFRkey = "ZFR"
+        #    else:
+        #        ZFRkey = "ZFRvCorr"
+        #    ZFRs_filter = np.transpose(np.stack([ZFR_coll["F" + str(i_filter) + "unrimed" + ZFRkey],ZFR_coll["F" + str(i_filter) + "transitional" + ZFRkey],ZFR_coll["F" + str(i_filter) + "rimed" + ZFRkey]]))
+        #    df_now = pd.DataFrame(ZFRs_filter, columns=list(["unrimed","transitional","rimed"])).assign(Filter=filterDescr[i_filter] +  "\nN=" + "{:.1f}".format(ZFR_coll["F" + str(i_filter) + "Hdata"]) + "h" + "\n(" + "{:.1f}".format(ZFR_coll["F" + str(i_filter) + "unrimed" + "_perc"]*100)+ "%" + ",{:.1f}".format(ZFR_coll["F" + str(i_filter) + "transitional" + "_perc"]*100)+ "%" + ",{:.1f}".format(ZFR_coll["F" + str(i_filter) + "rimed" + "_perc"]*100)+ "%)")
+        #    if i_filter==0:
+        #        df = df_now.copy()
+        #    else:
+        #        df = pd.concat([df,df_now]) #, df2, df3])                                # CONCATENATE
+        #mdf = pd.melt(df, id_vars=['Filter'], var_name=['Particle Type'])      # MELT
+        #mdf.rename(columns={'value':'ZFR'}, inplace=True)
 
 
-        ####plot
-        ax = sns.boxplot(x="Filter", y="ZFR", hue="Particle Type", data=mdf,
-            #showmeans=False,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
-            showfliers = showfliers, flierprops={"marker":'o', "markersize":2,"alpha":0.01},
-            ax=axes) 
-        ax.axhline(0.0,c="magenta",lw=2)
+        #####plot
+        #ax = sns.boxplot(x="Filter", y="ZFR", hue="Particle Type", data=mdf,
+        #    #showmeans=False,meanprops={"marker":"o","markerfacecolor":"white", "markeredgecolor":"black","markersize":"10"},
+        #    showfliers = showfliers, flierprops={"marker":'o', "markersize":2,"alpha":0.01},
+        #    ax=axes) 
+        #ax.axhline(0.0,c="magenta",lw=2)
 
-        plt.tight_layout() #rect=(0,0.00,1,1))
-        #save figure
-        savestr = 'plots/Boxplot4pres'
-        #if av_min!="0":
-        #    savestr+= "_av" + str(av_min) + "min"
-        plt.savefig(savestr + '.pdf')
-        print("pdf is at: ",savestr + '.pdf')
-        return
-        ###END: part for presentation (simplified plot)
+        #plt.tight_layout() #rect=(0,0.00,1,1))
+        ##save figure
+        #savestr = 'plots/Boxplot4pres'
+        ##if av_min!="0":
+        ##    savestr+= "_av" + str(av_min) + "min"
+        #plt.savefig(savestr + '.pdf')
+        #print("pdf is at: ",savestr + '.pdf')
+        #return
+        ####END: part for presentation (simplified plot)
 
     ZFR_coll   = dict() #collection of all ZFRs
     filterNumbers = [0,1,2]
@@ -1287,15 +1288,21 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         DWRxkT = vars_dict["DWRxkT"]
         ZFR = vars_dict[ZFRkey]
 
-        ZFR_coll = categorize_part_type(ZFR.data,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_filter,"F")
-        
-        #uncomment next lines get other variables for categories
-        key = "delz"
-        var = get_vars([key],results_now)[key]
-        var_coll = categorize_part_type(var.data,MDVxT.data,DWRxkT.data,dict(),key,i_filter,"F")
 
+        ZFR_coll = categorize_part_type(ZFR.data,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_filter,"F")
+        DWR_coll = categorize_part_type(DWRxkT.data,MDVxT.data,DWRxkT.data,ZFR_coll,"DWRxkT",i_filter,"F")
+
+        #uncomment next lines get other variables for categories
+        #key = "delz"
+        #var = get_vars([key],results_now)[key]
+        #var_coll = categorize_part_type(var.data,MDVxT.data,DWRxkT.data,dict(),key,i_filter,"F")
+
+        
     # DATAFRAMES WITH TRIAL COLUMN ASSIGNED
     for i_filter in filterNumbers:
+        #write out some the mean properties of some of the subpanels
+        print("unrimed F" + str(i_filter) + "; median(DWRxkT)",np.nanmedian(DWR_coll["F" + str(i_filter) + "unrimedDWRxkT"]),"90perc(DWRxkT)",np.nanpercentile(DWR_coll["F" + str(i_filter) + "unrimedDWRxkT"],90)) #,"N(DWRxkT)",sum(~np.isnan(DWR_coll["F" + str(i_filter) + "unrimedDWRxkT"])).values)
+
         ZFRs_filter = np.transpose(np.stack([ZFR_coll["F" + str(i_filter) + "unrimedZFR"],ZFR_coll["F" + str(i_filter) + "transitionalZFR"],ZFR_coll["F" + str(i_filter) + "rimedZFR"]]))
         df_now = pd.DataFrame(ZFRs_filter, columns=list(["unrimed","transitional","rimed"])).assign(Filter=filterDescr[i_filter] +  "\nN=" + "{:.1f}".format(ZFR_coll["F" + str(i_filter) + "Hdata"]) + "h" + "\n(" + "{:.1f}".format(ZFR_coll["F" + str(i_filter) + "unrimed" + "_perc"]*100)+ "%" + ",{:.1f}".format(ZFR_coll["F" + str(i_filter) + "transitional" + "_perc"]*100)+ "%" + ",{:.1f}".format(ZFR_coll["F" + str(i_filter) + "rimed" + "_perc"]*100)+ "%)")
         if i_filter==0:
@@ -1305,7 +1312,6 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         for key in ["unrimed","transitional","rimed"]:
             true_value = 0.0 #for the z-test we assume ZFR=0.0 (melting-only) as the null-hypothesis
   
-            #set_trace() 
             normed_data = preprocessing.normalize([df[key].dropna()])[0]
             if i_filter==1 and key=="unrimed":
                 pass
@@ -1431,10 +1437,19 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         ZFR = vars_dict[ZFRkey]
 
         ZFR_coll = categorize_part_type(ZFR.data,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_correction,"C")
+        DWRxkTnow = DWRxkT
+        DWRxkTnow.data = DWRxkT.data.where(~np.isnan(ZFR.data)).copy()
+        DWR_collC = categorize_part_type(DWRxkTnow.data,MDVxT.data,DWRxkT.data,ZFR_coll,"DWRxkT",i_correction,"C")
+
 
         #print("i_correction",i_correction,ZFRkey,"N(ZFR)",sum(~np.isnan(ZFR.data.values)),"N(ZFRkey)",sum(~np.isnan(vars_dict[ZFRkey].data.values)))
     # DATAFRAMES WITH TRIAL COLUMN ASSIGNED
     for i_correction in correctionNumbers:
+        #write out some the mean properties of some of the subpanels
+        print("unrimed C" + str(i_correction) + "; median(DWRxkT)",np.nanmedian(DWR_collC["C" + str(i_correction) + "unrimedDWRxkT"]),"90perc(DWRxkT)",np.nanpercentile(DWR_collC["C" + str(i_correction) + "unrimedDWRxkT"],90)) #,"N(DWRxkT)",sum(~np.isnan(DWR_collC["C" + str(i_correction) + "unrimedDWRxkT"])).values)
+        #write out some the mean properties of some of the subpanels #comment out to make script faster?
+        #ZFR_tmp = categorize_part_type(DWRxkT.data,MDVxT.data,DWRxkT.data,ZFR_coll,"DWRxkT",i_correction,"C")
+        #print("unrimed C" +str(i_correction) + "ML Top; median(DWRxkT)",np.nanmedian(ZFR_tmp["C0unrimedDWRxkT"]),"90perc(DWRxkT)",np.nanpercentile(ZFR_tmp["C0unrimedDWRxkT"],90),"95perc(DWRxkT)",np.nanpercentile(ZFR_tmp["C0unrimedDWRxkT"],95))
         if i_correction==0:
             ZFRkey = "ZFRvCorrT"
         elif i_correction==1:
@@ -1493,13 +1508,11 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
             MDVxT   = vars_dict[MDVkey]
             ZFR     = vars_dict["ZFR"].data.copy()
 
-
             #remove all datapoints where <ZFRkey> is not defined, which means that it cant be corrected for w
             ZFR.values = np.where(~np.isnan(vars_dict[ZFRkey].data.values),vars_dict["ZFR"].data.values,np.nan)
             ZFR_coll = categorize_part_type(ZFR,MDVxT.data,DWRxkT.data,ZFR_coll,ZFRkey,i_correction,"W")
 
             # DATAFRAMES WITH TRIAL COLUMN ASSIGNED
-            #ZFRkey = "ZFR" #the uncorrected ZFR is taken for all
             ZFRs_correction = np.transpose(np.stack([ZFR_coll["W" + str(i_correction) + "unrimed" + ZFRkey],ZFR_coll["W" + str(i_correction) + "transitional" + ZFRkey],ZFR_coll["W" + str(i_correction) + "rimed" + ZFRkey]]))
             df_now = pd.DataFrame(ZFRs_correction, columns=list(["unrimed","transitional","rimed"])).assign(Subset=correctionDescr[i_correction] +  "\nN=" + "{:.1f}".format(ZFR_coll["W" + str(i_correction) + "Hdata"]) + "h" + "\n(" + "{:.1f}".format(ZFR_coll["W" + str(i_correction) + "unrimed" + "_perc"]*100) + "%" + ",{:.1f}".format(ZFR_coll["W" + str(i_correction) + "transitional_perc"]*100)+ "%" + ",{:.1f}".format(ZFR_coll["W" + str(i_correction) + "rimed_perc"]*100)+ "%)")
             if i_correction==0:
