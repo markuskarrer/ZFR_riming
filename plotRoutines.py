@@ -64,8 +64,6 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     DWRxk = ZeX-ZeK
     DWRkw = ZeK-ZeW
     MDVx = -dataLV2.X_VEL_H
-    #MDVk = -dataLV2.Ka_VEL_H
-    #MDVw = -dataLV2.W_VEL_H
     ZfluxX = Bd(ZeX)*MDVx #derive reflectivity flux
     ZfluxX_dh = ZfluxX.differentiate("range").copy() #built vertical gradient
     ZfluxX_dh = ZfluxX_dh.rolling(time=15*int(average_min)).mean().copy() #built vertical gradient
@@ -117,9 +115,6 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
         ax.tick_params(axis='y',labelsize=20)
         ax.set_ylabel('range [m]',fontsize=20) 
         ax.set_ylim([MLbottom.dropna("time")[0].values-500,MLtop.dropna("time")[0].values+500])
-        #ax.grid(True,which="both",color='k', linestyle='-')
-
- 
 
     #plot MDV (top and bottom) and DWRxkTop
     ax=axes[-2]
@@ -314,6 +309,7 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
     #heightBottomMaxLDR-=36
     #heightTopMaxLDR+=3*36 #144
     for t in dataLV0.time:
+    #for t in dataLV0.time:
         ti = pd.to_datetime(str(t.values)).strftime('%Y%m%d_%H%M%S') #get string to name plot
         t_spectra = t #take spectra from the middle of the average period
         ti_spectra = pd.to_datetime(str(t_spectra.values)).strftime('%Y%m%d_%H%M%S') #get string to name plot
@@ -439,7 +435,8 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
             mie_notch_DV = []
             specW_now = specW.copy() #need to change conventions here back again
             specW_now["dopplerW"] = -specW_now["dopplerW"] #change conventions
-            if not noMieNotch: #True: #deactivat mie-notch plotting (takes a lot of time)
+
+            if not noMieNotch:  #deactivate mie-notch plotting (takes a lot of time)
                 for height in specW.range:
                     if height>(MLbottom_t+10):
                         continue
@@ -554,9 +551,9 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
                                                               ['z$_{W}$ [dB]','z$_{Ka}$ [dB]','z$_{X}$ [dB]','LDR$_{Ka}$ [dB]','dwr$_{Ka,W}$ [dB]','dwr$_{X,Ka}$ [dB]'], 
                                                               #[[-1,11],[-1,11],[-1,10],[-1,11],[-1,9],[-1,9]],  #xlims
                                                               [[-1,11],[-1,11],[-1,11],[-1,11],[-1,9],[-1,9]],  #xlims
-                                                              [[-45,10],[-45,10],[-45,10],[-30,-5],[-5,20],[-5,20]], #,[-5,20]],# ,[-0.5,3]], #lims (colorbar)
-                                                              #[axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
-                                                              [axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):#axes[:,0:2].flatten())):
+                                                              [[-45,10],[-45,10],[-45,10],[-30,-5],[-5,20],[-5,20]],  #lims (colorbar)
+                                                              [axes[1,0],axes[1,1],axes[0,1],axes[0,0]])):
+
             if len(var.shape)>2:
                 print("wrong shape of spectrum:", label)
                 continue
@@ -648,6 +645,307 @@ def plotProfilesAndSpectraObs(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_al
             filename = outPath+ ti +'_spectra' + w_detected_str + cat_str
             plt.savefig(filename + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
             plt.savefig(filename + '.pdf', facecolor=fig.get_facecolor(), edgecolor='none')
+         
+        print('saved to: ' + filename)
+        plt.close()
+        print(ti,' finished')     
+
+def plotSimpleSpectra(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_all_times=False,Kratio=0.23,noMieNotch=False):
+
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import postProcessSpectra as post
+    
+    av_timedelta = np.timedelta64(10, 'm')  #average window
+    for t in dataLV0.time:
+        ti = pd.to_datetime(str(t.values)).strftime('%Y%m%d_%H%M%S') #get string to name plot
+        t_spectra = t #take spectra from the middle of the average period
+        ti_spectra = pd.to_datetime(str(t_spectra.values)).strftime('%Y%m%d_%H%M%S') #get string to name plot
+        t_title_spectra = pd.to_datetime(str(t_spectra.values)).strftime('%Y%m%d %H:%M:%S UTC') 
+
+        print("plot time: ", t_title_spectra)
+        # select data according to time to plot
+        dataLV2selt = dataLV2.sel(time=t_spectra)
+        LDR  = LDRall.sel(time=t_spectra)
+        #get ML top/bottom
+        MLtop_t, heightLDRmax, MLbottom_t,        ldrGrad, ldrGrad2 = fc.getMLProperties_singleprofile(LDR, dataLV2selt.ta)
+        MLtop_t+=36 #144
+        MLbottom_t-=36
+        if np.isnan(MLtop_t) or np.isnan(MLbottom_t):
+            continue
+        Peaksselt   = Peaks.sel(time=t_spectra)
+        Edgesselt   = Edges.sel(time=t_spectra) #slice(t,t+av_timedelta))
+        #integral variables
+        ZeX = dataLV2selt.X_DBZ_H
+        ZeK = dataLV2selt.Ka_DBZ_H
+        ZeW = dataLV2selt.W_DBZ_H
+        DWRxk = ZeX-ZeK
+        DWRkw = ZeK-ZeW
+        MDVx = -dataLV2selt.X_VEL_H
+        MDVk = -dataLV2selt.Ka_VEL_H
+        MDVw = -dataLV2selt.W_VEL_H
+        ZfluxX = Bd(ZeX)*MDVx #derive reflectivity flux
+        RH = dataLV2selt.hur
+        pres = dataLV2selt.pa
+        presMLbot = pres.sel(range=MLbottom_t).values
+        ZFtop = ZfluxX.sel(range=MLtop_t)
+        ZFbottom = ZfluxX.sel(range=MLbottom_t)
+        ZFlow = 30
+        flagSmallZF = False
+        if ZFtop<ZFlow:
+            flagSmallZF = True
+        if (ZFbottom*0.23)<ZFlow:
+            flagSmallZF = True
+        #if ZFtop<0 or ZFbottom<0 or ZeX.sel(range=MLtop_t)<0: #skip plot if ZF is small
+        #    continue
+        ZFR = np.log10((ZFbottom/ZFtop).values*Kratio)
+        ##select values in time step
+        temp = dataLV2selt.ta
+        #spectral variables
+        dataLV0selt = dataLV0.sel(time=t_spectra)
+        specW   = 10*np.log10(dataLV0selt.WSpecH) #make logscale
+        specW_MLbot   = specW.sel(range=MLbottom_t) #select W-Band minimum to search for Mie-notch and correct vertical velocity at ML bottom
+        specKa    = 10*np.log10(dataLV0selt.KaSpecH) #make logscale
+        ZeKfromSpec = 10*np.log10(dataLV0selt.KaSpecH.sum(axis=1))
+        ZeKVfromSpec = 10*np.log10(dataLV0selt.KaSpecV.sum(axis=1))
+        LDRfromSpec = ZeKVfromSpec-ZeKfromSpec
+        specX   = 10*np.log10(dataLV0selt.XSpecH) #make logscale
+        specKaV   = 10*np.log10(dataLV0selt.KaSpecV) #make logscale
+        specKaHnoise   = 10*np.log10(dataLV0selt.KaSpecNoiseH) #make true linear (saved are linear units to which the log-lin transformation was applied once to much)
+        specKaHnoise   = 10*np.log10(specKaHnoise)
+        specKaHstrongnoisecorr   = specKa.where(specKa>(specKaHnoise+20)).copy()
+        #specXKa  = dataLV0selt.XSpecH.interp_like(dataLV0.KaSpecH)-dataLV0.KaSpecH 
+        LDRspecKa = specKaV - specKa #LDR normal noise reduction 
+        LDRspecKaNoiseCorr = specKaV - specKaHstrongnoisecorr #LDR normal noise reduction 
+        LDRspecW  = 10*np.log10(dataLV0selt.WSpecV)-10*np.log10(dataLV0.WSpecH.sel(time=t)) #make logscale
+
+        # now I (Leonie or Jose?) need to regrid along the doppler dimension in order to calculate spectral DWR... since we already did that for w-band, I want to regrid everything to w-band. WindowWidth is the width of moving window mean 
+        data_interp = post.regridSpec(dataLV0selt,windowWidth=10)
+        # add offsets from LV2 file:
+        dataDWR = post.addOffsets(data_interp,dataLV2selt)
+        specDWRxk = dataDWR.DWR_X_Ka
+        specDWRkw = dataDWR.DWR_Ka_W
+
+        #change conventions of DV
+        specKa["dopplerKa"] = -specKa["dopplerKa"] #change conventions
+        specW["dopplerW"] = -specW["dopplerW"] #change conventions
+        specKaV["dopplerKa"] = -specKaV["dopplerKa"] #change conventions
+        specKaHstrongnoisecorr["dopplerKa"] = -specKaHstrongnoisecorr["dopplerKa"] #change conventions
+        specX["dopplerX"] = -specX["dopplerX"] #change conventions
+        LDRspecKa["dopplerKa"] = -LDRspecKa["dopplerKa"] #change conventions
+        LDRspecKaNoiseCorr["dopplerKa"] = -LDRspecKaNoiseCorr["dopplerKa"] #change conventions
+        LDRspecW["dopplerW"]  = -LDRspecW["dopplerW"] #change conventions
+        specDWRxk["doppler"] = -specDWRxk["doppler"] #change conventions
+        specDWRkw["doppler"] = -specDWRkw["doppler"] #change conventions
+
+        if ~np.isnan(MLtop_t) and ~np.isnan(MLbottom_t):
+            #ZFR
+            ZFR_str = "ZFR={0:.2f}".format(ZFR)
+            ZFtop = ZfluxX.sel(range=MLtop_t) #flux top of melting layer
+            #MDVtop
+            MDVxTop = MDVx.sel(range=MLtop_t).values
+            MDVxBot = MDVx.sel(range=MLbottom_t).values
+            MDV_str = ("MDV$_{X,top}$=" + "{0:.2f}m".format(MDVxTop) +" s^{-1}" +
+                    "\nMDV$_{X,bottom}$=" + "{0:.2f}m".format(MDVxBot) +"s^{-1}")
+            #DWRxkTop
+            DWRxkT = DWRxk.sel(range=MLtop_t).values #(ZeK.sel(range=MLtop)-ZeW.sel(range=MLtop)).values
+            DWRxk_str = "DWR$_{X,Ka,TopML}$=" + "{0:.2f}dB\n".format(DWRxkT)
+            #DWRkwTop
+            DWRkwT = DWRkw.sel(range=MLtop_t).values #(ZeK.sel(range=MLtop)-ZeW.sel(range=MLtop)).values
+            DWRkw_str = "DWR$_{Ka,W,TopML}$=" + "{0:.2f}dB ".format(DWRkwT)
+            #RH (water)
+            RHb = RH.sel(range=MLbottom_t).values
+            RHb_str = "RH=" + "{0:.1f}".format(RHb)+ "%"
+            #get category
+            cat_str = categorize_part_type(MDVxTop,DWRxkT)
+            print("MDV",MDVxTop,"DWR",DWRxkT,cat_str)
+            #Peaks
+            Peak_MLtop = Peaksselt.sel(range=(MLtop_t),method="nearest").copy()
+            v_Peak1 = Peak_MLtop.sel(peakIndex=1).drop("peakIndex").peakVelClass #peak with smaller DV than main peak
+            v_Peak2 = Peak_MLtop.sel(peakIndex=2).drop("peakIndex").peakVelClass #peak with smaller DV than main peak
+            pow_Peak1 = Peak_MLtop.sel(peakIndex=1).drop("peakIndex").peakPowClass #peak with smaller DV than main peak
+            pow_Peak2 = Peak_MLtop.sel(peakIndex=2).drop("peakIndex").peakPowClass #peak with smaller DV than main peak
+            if pow_Peak1>-50: #filter noise
+                if pow_Peak1<-30: #probably second ice mode
+                    wtop_est = -v_Peak1.values
+                else:
+                    wtop_est= -v_Peak2.values
+            else:
+                wtop_est = np.nan
+            #mie-notch
+            wbot_est,__ = fc.get_mie_notch_DV(specW_MLbot,presMLbot,timestr=ti_spectra)
+            #get mie-notches at all heights below MLbottom
+            heights = []
+            theo_mie_notch_DV = []
+            mie_notch_DV = []
+            specW_now = specW.copy() #need to change conventions here back again
+            specW_now["dopplerW"] = -specW_now["dopplerW"] #change conventions
+            if not noMieNotch:  #deactivate mie-notch plotting (takes a lot of time)
+                for height in specW.range:
+                    if height>(MLbottom_t+10):
+                        continue
+                    if height<(MLbottom_t-500):
+                        continue
+                    theo_notch_terminal_vel = fc.get_mie_notch_DV_theor(pres.sel(range=height).values) #get mie-notch DV for w_vertical=0
+                    [w_est_liq,DV_notch] = fc.get_mie_notch_DV(specW_now.sel(range=height),pres.sel(range=height).values) #get actual mie-notch DV
+                    #save values
+                    heights.append(height.values)
+                    theo_mie_notch_DV.append(theo_notch_terminal_vel)
+                    mie_notch_DV.append(DV_notch)
+                    print("mie-notches","h",height.values,"actual notch",DV_notch,"theor. notch",theo_notch_terminal_vel,w_est_liq)
+
+            #Peaks_now = Peaks.sel(range=height)).copy() #all peaks in 5 min interval at ML bottom
+            w_str = "w$_{top}$=" + "{0:.2f}".format(wtop_est) + "m s$^{-1}$ " + "\n" + "w$_{bot}$=" + "{0:.2f}".format(wbot_est) + "m s$^{-1}$"
+    
+            if ~np.isnan(wtop_est) or ~np.isnan(wbot_est):
+                w_detected_str = "_w"
+                if ~np.isnan(wtop_est):
+                    w_detected_str += "T"
+                if ~np.isnan(wbot_est):
+                    w_detected_str += "B"
+            else:
+                w_detected_str = ""
+
+            
+            ZfluxXcorrTop = np.log10((Bd(ZeX.sel(range=MLbottom_t))*(MDVx.sel(range=MLbottom_t)-wbot_est)/(Bd(ZeX.sel(range=MLtop_t))* MDVx.sel(range=MLtop_t))).values*Kratio) #derive reflectivity flux
+            ZfluxXcorrBot = np.log10((Bd(ZeX.sel(range=MLbottom_t))*(MDVx.sel(range=MLbottom_t))         /(Bd(ZeX.sel(range=MLtop_t))*(MDVx.sel(range=MLtop_t)-wtop_est))).values*Kratio) #derive reflectivity flux
+            ZfluxXcorr    = np.log10((Bd(ZeX.sel(range=MLbottom_t))*(MDVx.sel(range=MLbottom_t)-wbot_est)/(Bd(ZeX.sel(range=MLtop_t))*(MDVx.sel(range=MLtop_t)-wtop_est))).values*Kratio) #derive reflectivity flux
+            ZFRcorrTop_str = "ZFR$_{corrTop}$=" + " {0:.2f}".format(ZfluxXcorrTop) 
+            ZFRcorrBot_str = "ZFR$_{corrBot}$=" + " {0:.2f}".format(ZfluxXcorrBot) 
+            ZFRcorr_str    = "ZFR$_{corr}$=" + " {0:.2f}".format(ZfluxXcorr)
+        else:
+            ZFR=np.nan
+            ZFR_str = ""
+            ZFtop = np.nan
+
+            DWRxk_str = ""
+            DWRkw_str = ""
+            MDV_str = ""
+            RHb_str = ""
+            w_str = ""
+
+            ZFRcorrTop_str = ""
+            ZFRcorrBot_str = ""
+            ZFRcorr_str = ""
+
+            ZFRcorrTop_str = ""
+            ZFRcorrBot_str = ""
+            ZFRcorr_str = ""
+
+        import matplotlib as mpl
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+        mpl.style.use('seaborn')
+        mpl.rcParams['font.size'] = 35
+        mpl.rcParams['legend.fontsize'] = 25
+        mpl.rcParams['figure.titlesize'] = 25
+
+        mpl.rcParams['legend.fancybox'] = True
+        mpl.rcParams['legend.framealpha'] = 0.7
+        mpl.rcParams['legend.facecolor']='silver'
+        mpl.rcParams['legend.frameon']=True
+
+        mpl.rcParams['ytick.labelsize']= 25
+        mpl.rcParams['xtick.labelsize']= 25
+        mpl.rcParams['axes.titlesize']=25
+        mpl.rcParams['axes.labelsize']=25
+
+        mpl.rcParams['lines.linewidth']=5
+
+        fig,axes = plt.subplots(ncols=2,nrows=2,figsize=(18,18)) 
+
+        #plot spectra
+        clabel = 'z [dB]'
+        for i_var,(xvar,yvar,var,xlims,vlims,ax) in enumerate(zip(
+                                                  [specKa.dopplerKa,specW.dopplerW,specKa.dopplerKa,specW.dopplerW],
+                                                  [specKa.range,specW.range,specKa.range,specW.range],
+                                                  [specKa,specW,specKa,specW],
+                                                  [[-1,8.5]]*4,
+                                                  [[-45,5]]*4,
+                                                  [axes[0,0],axes[0,1],axes[1,0],axes[1,1]])):
+
+            if i_var<2:
+                #plot spectrogram
+                mesh = ax.pcolormesh(xvar,yvar,var,vmin=vlims[0],vmax=vlims[1],cmap=getNewNipySpectral(),rasterized=True)
+                ax.set_ylim([MLbottom_t-300,MLtop_t+300])
+            else:
+                if i_var==2: #Ka-Band + MLtop 
+                    hPlot = MLtop_t
+                elif i_var==3: #W-Band + MLbot 
+                    hPlot = MLbottom_t
+                #plot spectra
+                line = ax.plot(xvar,var.sel(range=hPlot,method="nearest").values)
+
+            if i_var==0:
+                for i_peak,pI in enumerate(Peaksselt.peakIndex):
+                    peak = Peaksselt.sel(peakIndex=pI).copy()
+                    if all(np.isnan(peak.peakVelClass.values)) or peak.peakIndex.values<0 or peak.peakIndex.values>2:
+                        label="__None"
+                    else:
+                        label="Peak-" + str(peak.peakIndex.values)
+                    ax.plot(-peak.peakVelClass,peak.range,ls=["","","","-","--",":",""][i_peak],c="white",label=label,marker=["","","","","","",""][i_peak],markersize=15,markevery=5,lw=4)
+                    ax.legend(loc='upper right') 
+            elif i_var==1:
+                ax.plot(mie_notch_DV,heights,label="actual mie-notch",linestyle="-",c="magenta") #,lw=2)
+                ax.plot(theo_mie_notch_DV,heights,label="mie-notch (w=0)",linestyle="-",c="red") #,lw=2)
+                ax.legend(loc="upper right")
+            elif i_var==2:
+                peakIndex=1 #TODO: supercooled peak could also be pI=2; implement according to thresholds
+                wtop = -Peaksselt.sel(peakIndex=peakIndex,range=MLtop_t,method="nearest").peakVelClass + 0.05
+                print("w_MLtop:",float(wtop))
+                ax.axvline(wtop,color="k",ls="--")
+            elif i_var==3:
+                if noMieNotch:
+                    pass
+                else:
+                    ax.axvline(mie_notch_DV[-1],color="magenta",ls="-")
+                    ax.axvline(theo_mie_notch_DV[-1],color="red",ls="-")
+
+            if i_var==0:
+                # add color bar
+                cax = fig.add_axes([0.25, 0.97, 0.5, 0.02])
+
+                cb     =  fig.colorbar(mesh,cax=cax,orientation="horizontal",label=clabel)
+                cax.tick_params(direction="in")
+
+            if i_var<2:
+                #plot ML top/bottom 
+                ax.axhline(MLtop_t,color="silver")
+                ax.axhline(MLbottom_t,color="silver")
+
+            #labels
+            ax.set_xlabel('DV [m s$^{-1}$]')
+            if i_var==0:
+                ax.set_title("Ka-band",weight="bold")
+            elif i_var==1:
+                ax.set_title("W-band",weight="bold")
+            elif i_var==2:
+                ax.set_title("Ka-band at {0:.0f}m (ML top)".format(int(MLtop_t)),weight="bold")
+            elif i_var==3:
+                ax.set_title("W-band at {0:.0f}m (ML bottom)".format(int(MLbottom_t)),weight="bold")
+            #grid and lims
+            #ax.grid(True,zorder=-1000)
+            if i_var!=2:
+                ax.set_xlim(xlims)
+
+            if i_var<2:
+                ax.set_ylabel('height [m]')
+            if i_var>1:
+                ax.set_ylabel('z [dB]')
+        for ax,letter in zip(axes.flatten(),["a)","b)","c)","d)","e)","f)"]):
+            plt.text
+            plt.text(0.01, 0.99, letter,horizontalalignment='left',verticalalignment='top',transform = ax.transAxes,backgroundcolor="white")
+
+        #plt.subplots_adjust(left=0.17, bottom=0.17, right=0.67, top=0.93)
+        plt.subplots_adjust(top=0.9,wspace=0.22,hspace=0.22)
+        if flagSmallZF:
+           fluxFlag = "FluxLow"
+        else:
+           fluxFlag = "FluxHigh"
+        
+        filename = outPath+ 'KaSpectra_' + ti + w_detected_str + cat_str
+        #plt.tight_layout()
+        plt.savefig(filename + '.png', facecolor=fig.get_facecolor(), edgecolor='none')
+        plt.savefig(filename + '.pdf', facecolor=fig.get_facecolor(), edgecolor='none')
          
         print('saved to: ' + filename)
         plt.close()

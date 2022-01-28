@@ -20,6 +20,7 @@ parser =  argparse.ArgumentParser(description='plot melting statistics')
 parser.add_argument('-d','--date', nargs=1,help="format yyyymmdd")
 parser.add_argument('-st','--starttime', nargs=1,help="format HH:MM",default=["00:00"])
 parser.add_argument('-sp','--allSpectra', nargs=1,help="plot all spectra (True:1,False:0)",default=["0"])
+parser.add_argument('-SiS','--SimpleSpectra', nargs=1,help="plot simple spectra (Ka-Band and W to illustrate w-estimate) spectra (True:1,False:0)",default=["0"])
 parser.add_argument('-et','--endtime', nargs=1,help="format HH:MM",default=["23:59"])
 parser.add_argument('-ts','--timeseries', nargs=1,help="plot time-height series",default=["0"])
 parser.add_argument('-nmn','--noMieNotch', nargs=1,help="dont plot the mie-notch (takes time)",default=["0"])
@@ -27,6 +28,7 @@ args        = parser.parse_args()
 date        = args.date[0]
 st          = args.starttime[0]
 plot_all_spectra = args.allSpectra[0]=="1"
+plot_simple_Spectra = args.SimpleSpectra[0]=="1"
 plot_timeseries = args.timeseries[0]=="1"
 et          = args.endtime[0]
 noMieNotch  = args.noMieNotch[0]=="1"
@@ -83,7 +85,7 @@ dataLV0 = xr.decode_cf(dataLV0)
 ## slice data
 ####################
 #polMean = dataPol.sel(time=slice(dateStart,dateEnd)).resample(time='30min').mean()
-if plot_all_spectra or plot_timeseries:
+if plot_all_spectra or plot_timeseries or plot_simple_Spectra:
     LV0 = dataLV0.sel(time=slice(dateStartSpec,dateEndSpec)).resample(time='4s').nearest(tolerance='2s') #spectra #plot all times
     LV2 = dataLV2.sel(time=slice(dateStart,dateEnd)).resample(time='4s').nearest(tolerance='2s') #nearest(tolerance='3min') #moments
     Peaks = Peaks.sel(time=slice(dateStart,dateEnd)).resample(time='4s').nearest(tolerance='2s') 
@@ -115,6 +117,8 @@ else:
     ############################
     if plot_all_spectra:
         plotRout.plotProfilesAndSpectraObs(LDR,LV2,LV0,Peaks,Edges,'/net/morget/melting_plots/spectra/',plot_all_times=True,noMieNotch=noMieNotch)
+    elif plot_simple_Spectra:
+        plotRout.plotSimpleSpectra(LDR,LV2,LV0,Peaks,Edges,'plots/spectra/',plot_all_times=True,noMieNotch=noMieNotch)
     else:
         plotRout.plotProfilesAndSpectraObs(LDR,LV2,LV0,Peaks,Edges,'plots/spectra/')
 
