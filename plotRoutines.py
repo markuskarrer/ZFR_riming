@@ -189,7 +189,8 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
             ax.plot(ZeX.time,ZFR,c="k",label="ZFR$_{" + label_av,ls=ls,lw=lw)
         ax2.semilogy(ZeX.time,ZFtop,c="orange",label="F$_{Z,top," + label_av,ls=ls,lw=lw)
         ax2.semilogy(ZeX.time,ZFbottom*Kratio,c="g",label="F$_{Z,bottom," + label_av +  "*0.23",ls=ls,lw=lw)
-    ax.set_ylim([-1.0,1.0]) #[0.23-0.23,0.23+0.23])
+        ax2.set_ylim([2e-1,1e4]) #[0.23-0.23,0.23+0.23])
+    ax.set_ylim([-1.5,1.5]) #[0.23-0.23,0.23+0.23])
 
     FZlow=30
     #mark regions with too low fluxes
@@ -205,7 +206,7 @@ def plotMomentsObs4paper(LDRall,dataLV2,outPath,outName,average_min="2",date_str
     ax.tick_params(axis='x',labelsize=20)
     ax.tick_params(axis='y',labelsize=20)
     ax2.legend(loc="upper right",ncol=2,bbox_to_anchor=(1.05, 1.27),fontsize=20)
-    ax2.set_ylabel("$F_Z$ [mm$^6$ m s$^{-1}$]",fontsize=20)
+    ax2.set_ylabel("$F_Z$ [mm$^6$ m$^{-2}$ s$^{-1}$]",fontsize=20)
     ax2.tick_params(axis='y',labelsize=20)
     ax2.yaxis.grid(b=True,which="major",linestyle="--",c="k")
     #ax2.yaxis.grid(b=True,which="minor",linestyle="",c="k")
@@ -854,7 +855,7 @@ def plotSimpleSpectra(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_all_times=
         fig,axes = plt.subplots(ncols=2,nrows=2,figsize=(18,18)) 
 
         #plot spectra
-        clabel = 'z [dB]'
+        clabel = 'z [dBz m$^{-1}$ s]'
         for i_var,(xvar,yvar,var,xlims,vlims,ax) in enumerate(zip(
                                                   [specKa.dopplerKa,specW.dopplerW,specKa.dopplerKa,specW.dopplerW],
                                                   [specKa.range,specW.range,specKa.range,specW.range],
@@ -930,7 +931,7 @@ def plotSimpleSpectra(LDRall,dataLV2,dataLV0,Peaks,Edges,outPath,plot_all_times=
             if i_var<2:
                 ax.set_ylabel('height [m]')
             if i_var>1:
-                ax.set_ylabel('z [dB]')
+                ax.set_ylabel('z [dBz m$^{-1}$ s]')
         for ax,letter in zip(axes.flatten(),["a)","b)","c)","d)","e)","f)"]):
             plt.text
             plt.text(0.01, 0.99, letter,horizontalalignment='left',verticalalignment='top',transform = ax.transAxes,backgroundcolor="white")

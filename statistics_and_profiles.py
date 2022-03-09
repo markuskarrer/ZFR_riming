@@ -742,8 +742,8 @@ def get_vars(vars_out,res):
     all_dic["DWRxkT"]              = vars( "DWRxkT"         ,"DWR$_{X-Ka,top}$ [dB]"            ,[-1.5,15]            )
     all_dic["Delta_DWRxk"]         = vars( "Delta_DWRxk"    ,"$\Delta$ DWR$_{X-Ka}$ [dB]"       ,[0,10]               )
     all_dic["DWRkwT"]              = vars( "DWRkwT"         ,"DWR$_{Ka-W,top}$ [dB]"            ,[-1.5,10]            )
-    all_dic["ZeX"]                 = vars( "ZeXt"           ,"Ze$_{X,top}$ [dB]"                ,[0,35]               )
-    all_dic["ZeXb"]                = vars( "ZeXb"           ,"Ze$_{X,bottom}$ [dB]"             ,[0,35]               )
+    all_dic["ZeX"]                 = vars( "ZeXt"           ,"Ze$_{X,top}$ [dBz]"                ,[0,35]               )
+    all_dic["ZeXb"]                = vars( "ZeXb"           ,"Ze$_{X,bottom}$ [dBz]"             ,[0,35]               )
     all_dic["MDVxT"]               = vars( "MDVxT_denscorr" ,"MDV$_{X,top}$ [m s$^{-1}$]"              ,[0.6,2.5]            )
     all_dic["MDVxT2"]              = vars( "MDVxT_denscorr" ,"MDV$_{X,top}$ [m s$^{-1}$]"              ,[0.6,2.5]            )#Quick and dirty fix to use variable two time
     all_dic["MDVxB"]               = vars( "MDVxB_denscorr" ,"MDV$_{X,bottom}$ [m s$^{-1}$]"           ,[3.0,8.0]            )
@@ -800,9 +800,9 @@ def get_vars_profiles(vars_out,res):
 
     all_dic = dict()
     all_dic["LDR"]                 = vars( "LDR"            ,'LDR$_{Ka}$ [dB]'                  ,[-35,-5])
-    all_dic["ZeX"]                 = vars( "ZeX"            ,"Ze$_{X}$ [dB]"                ,[10,35]               )
+    all_dic["ZeX"]                 = vars( "ZeX"            ,"Ze$_{X}$ [dBz]"                ,[10,35]               )
     all_dic["MDVx"]                = vars( "MDVx"           ,"MDV$_{X}$ [m s$^{-1}$]"              ,[1.0,7]            )
-    all_dic["Fz"]                  = vars( "Fz"             ,"F$_{Z,X}$ [mm$^6$/m$^3$ m s$^{-1}$]"              ,[0,1e15]            )
+    all_dic["Fz"]                  = vars( "Fz"             ,"F$_{Z,X}$ [mm$^6$ m$^{-2}$ s$^{-1}$]"              ,[0,1e15]            )
     all_dic["DWRxk"]               = vars( "DWRxk"          ,"DWR$_{X,Ka}$ [dB]"             ,[-1.5,15]            )
     all_dic["DWRkw"]               = vars( "DWRkw"          ,"DWR$_{Ka,W}$ [dB]"             ,[-1.5,15]            )
     all_dic["FzNorm"]              = vars( "FzNorm"         ,"F$_{Z,X}$/F$_{Z,X,top}$"              ,[0.5,6]            )
@@ -819,7 +819,7 @@ def get_vars_profiles(vars_out,res):
 
     return dic
 
-def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,correct_w_before_categorization=False):
+def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,correct_w_before_categorization=False,OnlySubsetWithWCorr=False):
     '''
     plot profiles of several quantities vs. the normalized height within the melting layer
     '''
@@ -844,9 +844,18 @@ def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
     ZFR_coll   = dict() #collection of all ZFRs
 
     #get variables for categorization
-    vars_dict    = get_vars(["DWRxkT","MDVxT"],results)
+    vars_dict    = get_vars(["DWRxkT","MDVxT","MDVvCorrT"],results)
     MDVxT = vars_dict["MDVxT"]
     DWRxkT = vars_dict["DWRxkT"]
+
+    if OnlySubsetWithWCorr:
+        print("think about how to do that")
+        #set_trace()
+        MDVxT = vars_dict["MDVvCorrT"]
+        DWRxkT = vars_dict["DWRxkT"]
+    else:
+        MDVxT = vars_dict["MDVxT"]
+        DWRxkT = vars_dict["DWRxkT"]
 
     #get variables
     results = get_observed_melting_properties(onlydate=onlydate,calc_or_load=col,profiles=True,no_mie_notch=no_mie_notch) #calc_or_load: 1: calculate each day 0: load each day
@@ -867,13 +876,13 @@ def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
             vars_dict    = get_vars_profiles([key],results)
             var = vars_dict[key]
             var.data = vars_dict[key].data/vars_dict[key].data.sel(range=1.0,method="nearest") #normalize by flux at MLtop
+
         if correct_w_before_categorization:
             w_estT = get_vars_profiles(["w_estT"],results); varColl = categorize_part_type(var.data,MDVxT.data+w_estT["w_estT"].data.sel(range=1.0,method="nearest"),DWRxkT.data,dict(),key,0,"F") #returns dictionary with categorized variables e.g. varXcoll["F0rimedZFR"] #correct for w_estT before categoriztaion
         else:
             varColl = categorize_part_type(var.data,MDVxT.data,DWRxkT.data,dict(),key,0,"F") #returns dictionary with categorized variables e.g. varXcoll["F0rimedZFR"]
 
         z_dic = dict() #save "histogram" in dictionary
-        #for i_ptype,ptype in enumerate(["unrimed","transitional","rimed"]):
         colors = ["blue","red"]
         for i_ptype,ptype in enumerate(["unrimed","rimed"]):
             ax.axhline(1.0,c="k",ls="--",lw=5)
@@ -940,14 +949,13 @@ def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
                 ax2 = ax.twiny()
                 ax2.plot(fmelt,varColl["F0" + ptype +key].range,label="__",c=colors[i_ptype],lw=2,ls="--")
                 if i_ptype==0:
-                    ax2.plot(np.nan,np.nan,ls="--",c="k",label="$f_{melt}$")
+                    ax2.plot(np.nan,np.nan,ls="--",c="k",label="$f_{melt,Z}$")
                     ax2.legend()
-                #set_trace()
                 #med_quant.range.values[np.nanargmin(np.abs(fmelt-0.5))] #get hrel[fmelt=0.5]
                 
             
             #c=["blue","green","red"][i_ptype]
-    ax2.set_xlabel("$f_{melt}$")
+    ax2.set_xlabel("$f_{melt,Z}$")
     #fig.delaxes(axes[1][3])
     #plt.tight_layout() #rect=(0,0.00,1,1))
     plt.subplots_adjust(left=0.1,
@@ -966,6 +974,8 @@ def Profiles(results,save_spec,av_min="0",col=1,onlydate="",no_mie_notch=False,c
     plt.savefig(savestr + '.png')
     if correct_w_before_categorization:
         savestr += "_correct_w_before_categorization"
+    if OnlySubsetWithWCorr:
+        savestr += "_useOnlySubsetWithWCorr"
     plt.savefig(savestr + '.pdf')
     print("pdf is at: ",savestr + '.pdf')
     plt.clf()
@@ -1441,7 +1451,6 @@ def Boxplot(results,av_min="0",showfliers=False,ONLYbci=False,day=None,filterZef
         DWRxkTnow.data = DWRxkT.data.where(~np.isnan(ZFR.data)).copy()
         DWR_collC = categorize_part_type(DWRxkTnow.data,MDVxT.data,DWRxkT.data,ZFR_coll,"DWRxkT",i_correction,"C")
 
-
         #print("i_correction",i_correction,ZFRkey,"N(ZFR)",sum(~np.isnan(ZFR.data.values)),"N(ZFRkey)",sum(~np.isnan(vars_dict[ZFRkey].data.values)))
     # DATAFRAMES WITH TRIAL COLUMN ASSIGNED
     for i_correction in correctionNumbers:
@@ -1612,7 +1621,6 @@ def plot_timeseries(results,save_spec):
         ax.set_ylim([1e-1,1e4])
         #loop over average windows
         for i_av,av_min in enumerate([]): #"1","5","10"]):
-            #for i_var,(key,ax) in enumerate(zip(vars_dict.keys(),axes.flatten())):
             if not var.results_name.startswith("peak"):
                 if "s" in av_min:
                     av_sec = int(av_min[:-1])
@@ -1786,7 +1794,6 @@ def plot_timeseries(results,save_spec):
         #ax.xaxis.set_tick_params(which='minor', labelbottom=True,labelsize=4) #activate axis labels for all plots
 
     ax.set_xlabel("time [h]")
-    #plt.legend()
 
     plt.tight_layout()
     #save figure
@@ -1898,7 +1905,8 @@ if __name__ == '__main__':
     #for filterZeflux in [10,30,100]:
     for filterZeflux in [30]:
         #Boxplot(resultsAll,av_min=av_min,day=onlydate,filterZeflux=filterZeflux)
-        Boxplot(resultsAll,av_min=av_min,day=onlydate,filterZeflux=filterZeflux,addWsubsetWithoutCorr=True)
+        #Boxplot(resultsAll,av_min=av_min,day=onlydate,filterZeflux=filterZeflux,addWsubsetWithoutCorr=True)
+        pass
 
     #shuffle order to make scatter plot more objective (otherways last days are most visible)
     if onlydate!="":
@@ -1911,8 +1919,9 @@ if __name__ == '__main__':
     results = results.where((results["MDVxB"] * Bd(results["ZeXb"])*0.23)  >filterZeflux)
     save_spec = get_save_string(onlydate,filterZeflux=filterZeflux)
     #plot with different filters
-    #Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
+    Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch)
     #Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,correct_w_before_categorization=True)
+    Profiles(results,save_spec,av_min=av_min,col=calc_or_load_profiles,onlydate=onlydate,no_mie_notch=no_mie_notch,OnlySubsetWithWCorr=True)
     ######################################
 
     #######################################
